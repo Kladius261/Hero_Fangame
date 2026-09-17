@@ -50,9 +50,9 @@ MonoBehaviour:
   outerGlowLine: {fileID: 6243617025898349232}
   glowLine: {fileID: 4286779586585592644}
   coreLine: {fileID: 7856369788122503249}
-  outerGlowWidth: 1.4
-  glowWidth: 0.55
-  coreWidth: 0.12
+  outerGlowWidth: 0.49
+  glowWidth: 0.19
+  coreWidth: 0.04
   outerGlowColor: {r: 2.2, g: 0.35, b: 0.1, a: 0.4}
   glowColor: {r: 5, g: 1, b: 0.35, a: 1}
   coreColor: {r: 7, g: 4, b: 5, a: 1}
@@ -904,7 +904,7 @@ MonoBehaviour:
   tapDamage: 3
   beamTickDamage: 1
   beamTickInterval: 0.15
-  knockbackForce: 12
+  knockbackForce: 6
   knockbackRepeatInterval: 1
   tapPowerCost: 10
   holdPowerCostPerSecond: 30

@@ -24,6 +24,7 @@ namespace HeroFangame.Player
 
         public Vector2 Facing { get; private set; } = Vector2.right;
         public bool IsFlying { get; private set; }
+        public bool IsMovementLocked { get; set; }
 
         private float flightTimeRemaining;
         private float flightCooldownRemaining;
@@ -71,6 +72,12 @@ namespace HeroFangame.Player
 
         private void FixedUpdate()
         {
+            if (IsMovementLocked)
+            {
+                rb.linearVelocity = Vector2.zero;
+                return;
+            }
+
             if (IsFlying)
             {
                 rb.linearVelocity = flightDirection * flightSpeed;

@@ -35,7 +35,7 @@ namespace HeroFangame.Player
         [SerializeField] private float beamTickInterval = 0.15f;
 
         [Header("Knockback")]
-        [SerializeField] private float knockbackForce = 12f;
+        [SerializeField] private float knockbackForce = 6f;
         [SerializeField] private float knockbackRepeatInterval = 1f;
 
         [Header("Power Cost")]
@@ -204,6 +204,7 @@ namespace HeroFangame.Player
         private void ActivateBeamVisual(Vector2 origin, Vector2 dir, BeamHitResult hit)
         {
             isBeamActive = true;
+            controller.IsMovementLocked = true;
             if (beamRenderer != null)
             {
                 beamRenderer.SetActive(true);
@@ -234,6 +235,7 @@ namespace HeroFangame.Player
             }
 
             isBeamActive = false;
+            controller.IsMovementLocked = false;
             beamRenderer?.SetActive(false);
             impactEffect?.StopContact();
             SetCameraShake(false);

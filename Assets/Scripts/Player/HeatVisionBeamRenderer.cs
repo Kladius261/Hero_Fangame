@@ -19,9 +19,9 @@ namespace HeroFangame.Player
         [SerializeField] private LineRenderer outerGlowLine;
         [SerializeField] private LineRenderer glowLine;
         [SerializeField] private LineRenderer coreLine;
-        [SerializeField] private float outerGlowWidth = 1.4f;
-        [SerializeField] private float glowWidth = 0.55f;
-        [SerializeField] private float coreWidth = 0.12f;
+        [SerializeField] private float outerGlowWidth = 0.49f;
+        [SerializeField] private float glowWidth = 0.19f;
+        [SerializeField] private float coreWidth = 0.04f;
         [SerializeField] private Color outerGlowColor = new Color(2.2f, 0.35f, 0.1f, 0.4f);
         [SerializeField] private Color glowColor = new Color(5f, 1f, 0.35f, 1f);
         [SerializeField] private Color coreColor = new Color(7f, 4f, 5f, 1f);
