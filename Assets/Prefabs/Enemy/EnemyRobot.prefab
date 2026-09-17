@@ -172,7 +172,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4ab2dca92acc3f4790903057665f4d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Core.Damageable
-  maxHP: 3
+  maxHP: 12
 --- !u!114 &1256478522457239791
 MonoBehaviour:
   m_ObjectHideFlags: 0

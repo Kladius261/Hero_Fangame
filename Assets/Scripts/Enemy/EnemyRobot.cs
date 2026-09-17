@@ -8,7 +8,11 @@ namespace HeroFangame.Enemy
     /// within aggroRange, accumulates Freeze Breath exposure (IFreezable) and
     /// freezes solid once the threshold is crossed (stops moving, tints
     /// frost, auto-thaws), and takes bonus damage while frozen (IDamageModifier).
-    /// Requires Damageable + DamageFlashAndDestroy on the same GameObject.
+    /// Briefly suspends chase movement after any hit (knockbackRecoveryTime)
+    /// so an attack's physics knockback impulse can actually separate it from
+    /// the player instead of being overwritten by chase steering on the very
+    /// next physics step. Requires Damageable + DamageFlashAndDestroy on the
+    /// same GameObject.
     /// </summary>
     [RequireComponent(typeof(Damageable))]
     [RequireComponent(typeof(Rigidbody2D))]
@@ -20,6 +24,9 @@ namespace HeroFangame.Enemy
         [SerializeField] private Transform player;
         [SerializeField] private float aggroRange = 8f;
         [SerializeField] private float moveSpeed = 2.5f;
+
+        [Header("Knockback")]
+        [SerializeField] private float knockbackRecoveryTime = 0.35f;
 
         [Header("Freeze")]
         [SerializeField] private float freezeThreshold = 100f;
@@ -36,6 +43,7 @@ namespace HeroFangame.Enemy
         private float freezeExposure;
         private float frozenTimeRemaining;
         private Color baseColor;
+        private float knockbackTimeRemaining;
 
         public bool IsFrozen => state == State.Frozen;
 
@@ -64,11 +72,13 @@ namespace HeroFangame.Enemy
         private void OnEnable()
         {
             damageable.OnDeath += HandleDeath;
+            damageable.OnDamaged += HandleDamaged;
         }
 
         private void OnDisable()
         {
             damageable.OnDeath -= HandleDeath;
+            damageable.OnDamaged -= HandleDamaged;
         }
 
         private void Update()
@@ -93,6 +103,11 @@ namespace HeroFangame.Enemy
             {
                 freezeExposure = Mathf.Max(0f, freezeExposure - freezeExposureDecayPerSecond * Time.deltaTime);
             }
+
+            if (knockbackTimeRemaining > 0f)
+            {
+                knockbackTimeRemaining -= Time.deltaTime;
+            }
         }
 
         private void FixedUpdate()
@@ -100,6 +115,15 @@ namespace HeroFangame.Enemy
             if (state != State.Chase || player == null)
             {
                 rb.linearVelocity = Vector2.zero;
+                return;
+            }
+
+            if (knockbackTimeRemaining > 0f)
+            {
+                // Currently reeling from a hit: leave the physics-driven
+                // knockback velocity alone (it decays via linear damping)
+                // instead of instantly overwriting it with chase movement,
+                // so a knockback actually creates visible separation.
                 return;
             }
 
@@ -111,6 +135,14 @@ namespace HeroFangame.Enemy
             else
             {
                 rb.linearVelocity = Vector2.zero;
+            }
+        }
+
+        private void HandleDamaged(int amount)
+        {
+            if (state == State.Chase)
+            {
+                knockbackTimeRemaining = knockbackRecoveryTime;
             }
         }
 

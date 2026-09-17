@@ -19,7 +19,21 @@
       "Bash(unity auth:*)",
       "Bash(unity command:*)",
       "Skill(unity-cli)",
-      "Skill(unity-cli:*)"
+      "Skill(unity-cli:*)",
+      "Bash(ls Assets/Scripts/Player/*.meta Assets/Scripts/Camera/*.meta)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command get_component_properties --target \"/EnemyRobot\" --type \"Rigidbody2D\" --format json)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command get_component_properties --target \"/EnemyRobot\" --type \"Damageable\" --format json)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command get_component_properties --target \"/Destructible\" --type \"Damageable\" --format json)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command get_component_properties --target \"/Main Camera\" --type \"Camera\" --format json)",
+      "Bash(xargs cat:*)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command get_serialized_fields --target \"/Player\" --component \"HeroFangame.Player.HeatVisionAbility\" --format json)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command set_serialized_field --target \"/Player\" --component \"HeroFangame.Player.HeatVisionAbility\" --field \"beamRange\" --value 50 --format json)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command set_serialized_field --target \"/Player\" --component \"HeroFangame.Player.HeatVisionAbility\" --field \"knockbackForce\" --value 12 --format json)",
+      "Bash(python3 -c ':*)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command get_component_properties --target \"/Player/HeatVisionImpact/FireParticles\" --component \"ParticleSystem\" --format json)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command get_component_properties --target \"/Player/HeatVisionImpact/FireParticles\" --type \"ParticleSystem\" --format json)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command get_component_properties --target \"/Player\" --type \"Rigidbody2D\" --format json)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command set_component_properties --target \"/Player\" --type \"Rigidbody2D\" --properties '{\"m_Interpolate\":\"Interpolate\"}' --format json)"
     ]
   }
 }
