@@ -17,7 +17,9 @@
       "Bash(unity skill:*)",
       "Bash(unity doctor:*)",
       "Bash(unity auth:*)",
-      "Bash(unity command:*)"
+      "Bash(unity command:*)",
+      "Skill(unity-cli)",
+      "Skill(unity-cli:*)"
     ]
   }
 }
