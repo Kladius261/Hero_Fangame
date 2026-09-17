@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:unity.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(claude --version)",
+      "Bash(where claude:*)",
+      "Read(//c/Users/gohun/AppData/**)",
+      "Bash(npm ls:*)",
+      "Bash(\"/c/Users/gohun/AppData/Roaming/Claude/claude-code/2.1.92/claude.exe\" plugin:*)",
+      "Bash(unity --version)",
+      "Bash(unity status:*)",
+      "Bash(unity pipeline:*)",
+      "Bash(unity mcp:*)",
+      "Bash(\"/c/Users/gohun/AppData/Roaming/Claude/claude-code/2.1.92/claude.exe\" mcp:*)",
+      "Bash(unity skill:*)",
+      "Bash(unity doctor:*)",
+      "Bash(unity auth:*)",
+      "Bash(unity command:*)"
+    ]
+  }
+}
