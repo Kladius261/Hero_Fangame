@@ -1,6 +1,7 @@
 using UnityEngine;
 using HeroFangame.Combat;
 using HeroFangame.Core;
+using HeroFangame.Camera;
 
 namespace HeroFangame.Player
 {
@@ -40,10 +41,12 @@ namespace HeroFangame.Player
         [Header("Visuals")]
         [SerializeField] private float tapPulseDuration = 0.15f;
         [SerializeField] private FreezeBreathConeEffect coneEffect;
+        [SerializeField] private float breathShakeDuration = 0.08f;
 
         private PlayerInputHandler input;
         private PlayerController controller;
         private PowerGauge power;
+        private CameraShake cameraShake;
 
         private bool wasHeld;
         private float tapPulseTimeRemaining;
@@ -79,6 +82,16 @@ namespace HeroFangame.Player
                 {
                     ApplyCone(tapConeSize, tapDamage, tapExposure, isTap: true, isNewActivation: true);
                     tapPulseTimeRemaining = tapPulseDuration;
+
+                    // Single, brief shake on the moment of firing only —
+                    // unlike Heat Vision's continuous shake while its beam
+                    // is held, Freeze Breath shakes once per activation and
+                    // stays still for the rest of the hold.
+                    if (cameraShake == null)
+                    {
+                        cameraShake = CameraShake.GetOrCreate();
+                    }
+                    cameraShake?.Pulse(breathShakeDuration);
                 }
             }
             else if (isHeld && wasHeld)

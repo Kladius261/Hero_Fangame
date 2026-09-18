@@ -4919,12 +4919,13 @@ MonoBehaviour:
   aggroRange: 8
   moveSpeed: 2.5
   knockbackRecoveryTime: 0.35
-  freezeThreshold: 100
-  freezeDuration: 3
+  freezeThreshold: 25
   frozenDamageMultiplier: 2
   frozenTint: {r: 0.6, g: 0.85, b: 1, a: 1}
   freezeExposureDecayPerSecond: 10
   freezeVisual: {fileID: 2161864642756963197}
+  freezeKnockbackDistance: 0.4
+  freezeShakeDuration: 0.12
 --- !u!114 &2161864642756963197
 MonoBehaviour:
   m_ObjectHideFlags: 0

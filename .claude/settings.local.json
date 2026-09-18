@@ -86,7 +86,20 @@
       "Bash(where ffmpeg:*)",
       "Bash(where ffprobe:*)",
       "Bash(python -c \"import cv2\")",
-      "mcp__unity-editor-mcp__console_status"
+      "mcp__unity-editor-mcp__console_status",
+      "mcp__unity-editor-mcp__editor_status",
+      "mcp__unity-editor-mcp__editor_play",
+      "mcp__unity-editor-mcp__wait_for",
+      "mcp__unity-editor-mcp__editor_stop",
+      "Bash(grep -n \"m_Name: Player$\" -A0 \"Assets/Scenes/SampleScene.unity\" \"Assets/Scenes/Prototype.unity\")",
+      "Read(//c/Users/gohun/OneDrive/Desktop/UnityProject/Prefabs/Player/**)",
+      "mcp__unity-editor-mcp__find_gameobjects",
+      "mcp__unity-editor-mcp__get_component_properties",
+      "mcp__unity-editor-mcp__get_serialized_fields",
+      "mcp__unity-editor-mcp__set_serialized_field",
+      "mcp__unity-editor-mcp__save_scene",
+      "mcp__unity-editor-mcp__apply_prefab_overrides",
+      "mcp__unity-editor-mcp__console"
     ]
   }
 }

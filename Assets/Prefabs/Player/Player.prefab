@@ -49,12 +49,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Player.FreezeBreathConeEffect
   mistParticles: {fileID: 1032884829092265384}
   sparkleParticles: {fileID: 4032442549714499765}
-  tapEmissionRate: 220
-  holdEmissionRate: 150
-  sparkleEmissionRate: 26
-  tapBurstCount: 34
+  tapEmissionRate: 440
+  holdEmissionRate: 300
+  sparkleEmissionRate: 52
+  tapBurstCount: 68
   streakParticles: {fileID: 7856792565496796174}
-  streakEmissionRate: 65
+  streakEmissionRate: 130
 --- !u!1 &1410134408932960363
 GameObject:
   m_ObjectHideFlags: 0
@@ -893,7 +893,7 @@ ParticleSystem:
         m_Curve:
         - serializedVersion: 3
           time: 0
-          value: 7
+          value: 14
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -902,7 +902,7 @@ ParticleSystem:
           outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 7
+          value: 14
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -917,7 +917,7 @@ ParticleSystem:
         m_Curve:
         - serializedVersion: 3
           time: 0
-          value: 4
+          value: 8
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -926,7 +926,7 @@ ParticleSystem:
           outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 4
+          value: 8
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -1414,7 +1414,7 @@ ParticleSystem:
     strength:
       serializedVersion: 3
       minMaxState: 0
-      scalar: 0.35
+      scalar: 0.7
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -1463,7 +1463,7 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     separateAxes: 0
-    frequency: 0.8
+    frequency: 1.6
     damping: 1
     octaves: 1
     octaveMultiplier: 0.5
@@ -1472,7 +1472,7 @@ ParticleSystem:
     scrollSpeed:
       serializedVersion: 3
       minMaxState: 0
-      scalar: 1.2
+      scalar: 2.4
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -2954,7 +2954,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2.020773, y: 2.020773, z: 2.020773}
+  m_LocalScale: {x: 2.2640042, y: 2.2640042, z: 2.2640042}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3773119193924025504}
@@ -3452,6 +3452,7 @@ MonoBehaviour:
   holdPowerCostPerSecond: 25
   tapPulseDuration: 0.15
   coneEffect: {fileID: 8682395764940048788}
+  breathShakeDuration: 0.08
 --- !u!1 &6992898290310846903
 GameObject:
   m_ObjectHideFlags: 0
@@ -6496,7 +6497,7 @@ ParticleSystem:
         m_Curve:
         - serializedVersion: 3
           time: 0
-          value: 24
+          value: 48
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -6505,7 +6506,7 @@ ParticleSystem:
           outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 24
+          value: 48
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -6520,7 +6521,7 @@ ParticleSystem:
         m_Curve:
         - serializedVersion: 3
           time: 0
-          value: 16
+          value: 32
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -6529,7 +6530,7 @@ ParticleSystem:
           outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 16
+          value: 32
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -8920,7 +8921,7 @@ ParticleSystem:
         m_Curve:
         - serializedVersion: 3
           time: 0
-          value: 8
+          value: 16
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -8929,7 +8930,7 @@ ParticleSystem:
           outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 8
+          value: 16
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -8944,7 +8945,7 @@ ParticleSystem:
         m_Curve:
         - serializedVersion: 3
           time: 0
-          value: 5
+          value: 10
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -8953,7 +8954,7 @@ ParticleSystem:
           outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 5
+          value: 10
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -9441,7 +9442,7 @@ ParticleSystem:
     strength:
       serializedVersion: 3
       minMaxState: 0
-      scalar: 0.9
+      scalar: 1.8
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -9490,7 +9491,7 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     separateAxes: 0
-    frequency: 1
+    frequency: 2
     damping: 1
     octaves: 1
     octaveMultiplier: 0.5
@@ -9499,7 +9500,7 @@ ParticleSystem:
     scrollSpeed:
       serializedVersion: 3
       minMaxState: 0
-      scalar: 1.8
+      scalar: 3.6
       minScalar: 0
       maxCurve:
         serializedVersion: 2

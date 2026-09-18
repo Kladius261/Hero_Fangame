@@ -20,14 +20,14 @@ namespace HeroFangame.Player
         [Header("Mist / Sparkle")]
         [SerializeField] private ParticleSystem mistParticles;
         [SerializeField] private ParticleSystem sparkleParticles;
-        [SerializeField] private float tapEmissionRate = 220f;
-        [SerializeField] private float holdEmissionRate = 150f;
-        [SerializeField] private float sparkleEmissionRate = 26f;
-        [SerializeField] private int tapBurstCount = 34;
+        [SerializeField] private float tapEmissionRate = 440f;
+        [SerializeField] private float holdEmissionRate = 300f;
+        [SerializeField] private float sparkleEmissionRate = 52f;
+        [SerializeField] private int tapBurstCount = 68;
 
         [Header("Wind Streaks")]
         [SerializeField] private ParticleSystem streakParticles;
-        [SerializeField] private float streakEmissionRate = 65f;
+        [SerializeField] private float streakEmissionRate = 130f;
 
         private bool isActive;
 
