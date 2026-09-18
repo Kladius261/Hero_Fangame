@@ -34,6 +34,7 @@ namespace HeroFangame.Enemy
         [SerializeField] private float frozenDamageMultiplier = 2f;
         [SerializeField] private Color frozenTint = new Color(0.6f, 0.85f, 1f);
         [SerializeField] private float freezeExposureDecayPerSecond = 10f;
+        [SerializeField] private EnemyFreezeVisualEffect freezeVisual;
 
         private Rigidbody2D rb;
         private SpriteRenderer spriteRenderer;
@@ -169,6 +170,7 @@ namespace HeroFangame.Enemy
             {
                 spriteRenderer.color = frozenTint;
             }
+            freezeVisual?.PlayFreezeIn();
         }
 
         private void Thaw()
@@ -179,6 +181,7 @@ namespace HeroFangame.Enemy
             {
                 spriteRenderer.color = baseColor;
             }
+            freezeVisual?.PlayThaw();
         }
 
         public float GetDamageMultiplier()

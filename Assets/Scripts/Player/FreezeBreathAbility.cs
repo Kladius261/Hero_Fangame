@@ -8,7 +8,10 @@ namespace HeroFangame.Player
     /// Short-to-medium range frontal cone. A tap applies a small amount of
     /// freeze exposure plus minor direct damage. Holding widens the cone and
     /// builds sustained freeze exposure (via IFreezable) while continuously
-    /// draining Power. Low damage / minimal knockback by design.
+    /// draining Power. Low damage / minimal knockback by design. Like Heat
+    /// Vision, locks player movement (and facing) for as long as the cone is
+    /// active, so the player must stop breathing to reposition or flip the
+    /// breath's direction.
     /// </summary>
     [RequireComponent(typeof(PlayerInputHandler))]
     [RequireComponent(typeof(PlayerController))]
@@ -30,11 +33,17 @@ namespace HeroFangame.Player
         [SerializeField] private float tapPowerCost = 8f;
         [SerializeField] private float holdPowerCostPerSecond = 25f;
 
+        [Header("Visuals")]
+        [SerializeField] private float tapPulseDuration = 0.15f;
+        [SerializeField] private FreezeBreathConeEffect coneEffect;
+
         private PlayerInputHandler input;
         private PlayerController controller;
         private PowerGauge power;
 
         private bool wasHeld;
+        private float tapPulseTimeRemaining;
+        private bool isConeActive;
 
         private void Awake()
         {
@@ -47,11 +56,25 @@ namespace HeroFangame.Player
         {
             bool isHeld = input.FreezeBreathHeld;
 
+            if (!isHeld && tapPulseTimeRemaining > 0f)
+            {
+                // Tap already fired; keep its brief cloud pulse alive for a
+                // few frames instead of cutting it off instantly.
+                tapPulseTimeRemaining -= Time.deltaTime;
+                if (tapPulseTimeRemaining <= 0f)
+                {
+                    StopConeVisual();
+                }
+                wasHeld = false;
+                return;
+            }
+
             if (isHeld && !wasHeld)
             {
                 if (power.TrySpend(tapPowerCost))
                 {
-                    ApplyCone(tapConeSize, tapDamage, tapExposure);
+                    ApplyCone(tapConeSize, tapDamage, tapExposure, isTap: true);
+                    tapPulseTimeRemaining = tapPulseDuration;
                 }
             }
             else if (isHeld && wasHeld)
@@ -59,15 +82,25 @@ namespace HeroFangame.Player
                 float drained = power.DrainOverTime(holdPowerCostPerSecond);
                 if (drained > 0f)
                 {
-                    ApplyCone(holdConeSize, 0, holdExposurePerSecond * Time.deltaTime);
+                    ApplyCone(holdConeSize, 0, holdExposurePerSecond * Time.deltaTime, isTap: false);
                 }
+                else
+                {
+                    StopConeVisual();
+                }
+            }
+            else
+            {
+                StopConeVisual();
             }
 
             wasHeld = isHeld && power.Current > 0f;
         }
 
-        private void ApplyCone(Vector2 size, int damage, float exposure)
+        private void ApplyCone(Vector2 size, int damage, float exposure, bool isTap)
         {
+            controller.LockMovement(this);
+
             Vector2 origin = (Vector2)transform.position + controller.Facing * (coneOffset + size.x * 0.5f);
             float angle = Vector2.SignedAngle(Vector2.right, controller.Facing);
 
@@ -86,6 +119,21 @@ namespace HeroFangame.Player
                 var freezable = hit.GetComponentInParent<IFreezable>();
                 freezable?.AddFreezeExposure(exposure);
             }
+
+            isConeActive = true;
+            coneEffect?.SetCone(origin, size, angle, isTap);
+        }
+
+        private void StopConeVisual()
+        {
+            controller.UnlockMovement(this);
+
+            if (!isConeActive)
+            {
+                return;
+            }
+            isConeActive = false;
+            coneEffect?.StopCone();
         }
 
 #if UNITY_EDITOR

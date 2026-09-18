@@ -204,7 +204,7 @@ namespace HeroFangame.Player
         private void ActivateBeamVisual(Vector2 origin, Vector2 dir, BeamHitResult hit)
         {
             isBeamActive = true;
-            controller.IsMovementLocked = true;
+            controller.LockMovement(this);
             if (beamRenderer != null)
             {
                 beamRenderer.SetActive(true);
@@ -235,7 +235,7 @@ namespace HeroFangame.Player
             }
 
             isBeamActive = false;
-            controller.IsMovementLocked = false;
+            controller.UnlockMovement(this);
             beamRenderer?.SetActive(false);
             impactEffect?.StopContact();
             SetCameraShake(false);

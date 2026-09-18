@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace HeroFangame.Player
@@ -22,9 +23,26 @@ namespace HeroFangame.Player
         private Rigidbody2D rb;
         private PlayerInputHandler input;
 
+        // Multiple abilities (Heat Vision, Freeze Breath, ...) can each want
+        // to lock movement at once. Tracking requesters individually (rather
+        // than a single shared bool) means one ability releasing its lock in
+        // a given frame can never stomp a different ability's still-active
+        // lock, regardless of Update() execution order between them.
+        private readonly HashSet<object> movementLockers = new HashSet<object>();
+
         public Vector2 Facing { get; private set; } = Vector2.right;
         public bool IsFlying { get; private set; }
-        public bool IsMovementLocked { get; set; }
+        public bool IsMovementLocked => movementLockers.Count > 0;
+
+        public void LockMovement(object requester)
+        {
+            movementLockers.Add(requester);
+        }
+
+        public void UnlockMovement(object requester)
+        {
+            movementLockers.Remove(requester);
+        }
 
         private float flightTimeRemaining;
         private float flightCooldownRemaining;
@@ -50,7 +68,7 @@ namespace HeroFangame.Player
         private void Update()
         {
             Vector2 move = input.MoveInput;
-            if (move.sqrMagnitude > 0.0001f)
+            if (!IsMovementLocked && move.sqrMagnitude > 0.0001f)
             {
                 Facing = move.normalized;
             }
