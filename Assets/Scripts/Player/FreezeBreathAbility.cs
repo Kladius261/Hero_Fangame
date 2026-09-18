@@ -147,9 +147,28 @@ namespace HeroFangame.Player
 
         private void ApplyCone(Vector2 size, int damage, float exposure, bool isTap, bool isNewActivation)
         {
+            Vector2 dir = GetBreathDirection();
+
+            // Never let the cone reach past the edge of the camera's
+            // current view — enemies further along the level haven't
+            // scrolled into frame yet and shouldn't be hittable before the
+            // player can even see them.
+            float availableDistance = CameraViewBounds.GetDistanceToEdge(transform.position.x, dir.x);
+            float clampedFarDistance = Mathf.Min(coneOffset + size.x, availableDistance);
+            size.x = Mathf.Max(0f, clampedFarDistance - coneOffset);
+
+            if (size.x <= 0f)
+            {
+                // Player is already right at (or past) the screen edge in
+                // this direction — nothing on-screen left to reach, so
+                // skip the attack and its visuals entirely rather than
+                // firing a degenerate zero-width box.
+                StopConeVisual();
+                return;
+            }
+
             controller.LockMovement(this);
 
-            Vector2 dir = GetBreathDirection();
             Vector2 origin = (Vector2)transform.position + dir * (coneOffset + size.x * 0.5f);
             float angle = Vector2.SignedAngle(Vector2.right, dir);
 

@@ -146,7 +146,12 @@ namespace HeroFangame.Player
 
         private BeamHitResult Probe(Vector2 origin, Vector2 dir)
         {
-            return AttackUtility.BoxCastSinglePeek(origin, new Vector2(beamSize.y, beamSize.y), dir, beamRange, hittableLayers);
+            // Never let the beam reach past the edge of the camera's
+            // current view — enemies further along the level haven't
+            // scrolled into frame yet and shouldn't be hittable before the
+            // player can even see them.
+            float maxDistance = Mathf.Min(beamRange, CameraViewBounds.GetDistanceToEdge(origin.x, dir.x));
+            return AttackUtility.BoxCastSinglePeek(origin, new Vector2(beamSize.y, beamSize.y), dir, maxDistance, hittableLayers);
         }
 
         /// <summary>

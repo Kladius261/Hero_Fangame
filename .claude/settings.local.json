@@ -110,7 +110,10 @@
       "Bash(where vlc:*)",
       "Bash(mkdir -p /c/Users/gohun/AppData/Local/Temp/video_frames)",
       "Bash(\"/c/Program Files/VideoLAN/VLC/vlc.exe\" -I dummy \"C:\\\\Users\\\\gohun\\\\OneDrive\\\\문서\\\\oCam\\\\녹화_2026_09_18_22_56_27_382.mp4\" --video-filter=scene --vout=dummy --scene-ratio=30 --scene-prefix=frame --scene-path=\"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\video_frames\" vlc://quit)",
-      "Bash(taskkill //F //IM vlc.exe)"
+      "Bash(taskkill //F //IM vlc.exe)",
+      "Bash(find /c/Users/gohun/OneDrive/Desktop/UnityProject/Hero_Fangame/Assets/Scripts -name \"*.cs\" -type f -exec grep -l \"Camera\\\\|camera\\\\|follow\\\\|Follow\" {} \\\\;)",
+      "Bash(find /c/Users/gohun/OneDrive/Desktop/UnityProject/Hero_Fangame/Assets -name \"*.cs\" -type f -exec grep -l \"orthographicSize\\\\|ViewportToWorldPoint\\\\|camera.*bounds\\\\|visible.*screen\\\\|screen.*bounds\" {} \\\\;)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
