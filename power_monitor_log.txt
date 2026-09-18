@@ -1,0 +1,1 @@
+real=142.85 gameT=409.20 Q=False W=False Current=90.4 fill=0.904

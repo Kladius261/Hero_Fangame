@@ -21,6 +21,7 @@ namespace HeroFangame.Player
     [RequireComponent(typeof(PlayerInputHandler))]
     [RequireComponent(typeof(PlayerController))]
     [RequireComponent(typeof(PowerGauge))]
+    [RequireComponent(typeof(AbilityLock))]
     public class FreezeBreathAbility : MonoBehaviour
     {
         [Header("Cone Shape")]
@@ -46,6 +47,7 @@ namespace HeroFangame.Player
         private PlayerInputHandler input;
         private PlayerController controller;
         private PowerGauge power;
+        private AbilityLock abilityLock;
         private CameraShake cameraShake;
 
         private bool wasHeld;
@@ -57,11 +59,17 @@ namespace HeroFangame.Player
             input = GetComponent<PlayerInputHandler>();
             controller = GetComponent<PlayerController>();
             power = GetComponent<PowerGauge>();
+            abilityLock = GetComponent<AbilityLock>();
+            if (abilityLock == null)
+            {
+                abilityLock = gameObject.AddComponent<AbilityLock>();
+            }
         }
 
         private void Update()
         {
-            bool isHeld = input.FreezeBreathHeld;
+            bool rawHeld = input.FreezeBreathHeld;
+            bool isHeld = abilityLock.CanActivate(this, rawHeld);
 
             if (!isHeld && tapPulseTimeRemaining > 0f)
             {
@@ -75,6 +83,8 @@ namespace HeroFangame.Player
                 wasHeld = false;
                 return;
             }
+
+            bool activatedThisFrame = false;
 
             if (isHeld && !wasHeld)
             {
@@ -92,6 +102,7 @@ namespace HeroFangame.Player
                         cameraShake = CameraShake.GetOrCreate();
                     }
                     cameraShake?.Pulse(breathShakeDuration);
+                    activatedThisFrame = true;
                 }
             }
             else if (isHeld && wasHeld)
@@ -100,6 +111,7 @@ namespace HeroFangame.Player
                 if (drained > 0f)
                 {
                     ApplyCone(holdConeSize, 0, holdExposurePerSecond * Time.deltaTime, isTap: false, isNewActivation: false);
+                    activatedThisFrame = true;
                 }
                 else
                 {
@@ -111,7 +123,16 @@ namespace HeroFangame.Player
                 StopConeVisual();
             }
 
-            wasHeld = isHeld && power.Current > 0f;
+            // Deliberately NOT "isHeld && power.Current > 0f" — that let a
+            // failed tap (insufficient power) silently flip back to the
+            // cheaper hold-drain path the instant Current ticked up by even
+            // a fraction from regen, letting a continuously-held press
+            // stutter-fire on trickles of power instead of requiring the
+            // full tap cost again. Gating on whether we actually activated
+            // this frame means an empty gauge truly locks the ability out
+            // (while still held) until enough power has regenerated to
+            // afford a fresh full-cost tap.
+            wasHeld = isHeld && activatedThisFrame;
         }
 
         /// <summary>

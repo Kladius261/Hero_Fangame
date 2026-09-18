@@ -1,4 +1,5 @@
 using UnityEngine;
+using HeroFangame.UI;
 
 namespace HeroFangame.Player
 {
@@ -21,6 +22,7 @@ namespace HeroFangame.Player
         private void Awake()
         {
             Current = max;
+            PowerGaugeUI.GetOrCreate(this);
         }
 
         private void Update()

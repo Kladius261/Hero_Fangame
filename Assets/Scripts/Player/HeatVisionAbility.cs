@@ -21,6 +21,7 @@ namespace HeroFangame.Player
     [RequireComponent(typeof(PlayerInputHandler))]
     [RequireComponent(typeof(PlayerController))]
     [RequireComponent(typeof(PowerGauge))]
+    [RequireComponent(typeof(AbilityLock))]
     public class HeatVisionAbility : MonoBehaviour
     {
         [Header("Beam Shape")]
@@ -50,6 +51,7 @@ namespace HeroFangame.Player
         private PlayerInputHandler input;
         private PlayerController controller;
         private PowerGauge power;
+        private AbilityLock abilityLock;
         private CameraShake cameraShake;
 
         private bool wasHeld;
@@ -65,11 +67,17 @@ namespace HeroFangame.Player
             input = GetComponent<PlayerInputHandler>();
             controller = GetComponent<PlayerController>();
             power = GetComponent<PowerGauge>();
+            abilityLock = GetComponent<AbilityLock>();
+            if (abilityLock == null)
+            {
+                abilityLock = gameObject.AddComponent<AbilityLock>();
+            }
         }
 
         private void Update()
         {
-            bool isHeld = input.HeatVisionHeld;
+            bool rawHeld = input.HeatVisionHeld;
+            bool isHeld = abilityLock.CanActivate(this, rawHeld);
 
             if (!isHeld && tapPulseTimeRemaining > 0f)
             {
@@ -84,12 +92,15 @@ namespace HeroFangame.Player
                 return;
             }
 
+            bool activatedThisFrame = false;
+
             if (isHeld && !wasHeld)
             {
                 // Tap: instant shot against the first target only.
                 if (power.TrySpend(tapPowerCost))
                 {
                     FireTap();
+                    activatedThisFrame = true;
                 }
                 tickTimer = beamTickInterval;
             }
@@ -109,6 +120,7 @@ namespace HeroFangame.Player
                         tickTimer = beamTickInterval;
                     }
                     ResolveHoldFrame(doDamageTick);
+                    activatedThisFrame = true;
                 }
                 else
                 {
@@ -120,7 +132,16 @@ namespace HeroFangame.Player
                 StopBeamVisuals();
             }
 
-            wasHeld = isHeld && power.Current > 0f;
+            // Deliberately NOT "isHeld && power.Current > 0f" — that let a
+            // failed tap (insufficient power) silently flip back to the
+            // cheaper hold-drain path the instant Current ticked up by even
+            // a fraction from regen, letting a continuously-held press
+            // stutter-fire on trickles of power instead of requiring the
+            // full tap cost again. Gating on whether we actually activated
+            // this frame means an empty gauge truly locks the ability out
+            // (while still held) until enough power has regenerated to
+            // afford a fresh full-cost tap.
+            wasHeld = isHeld && activatedThisFrame;
         }
 
         private BeamHitResult Probe(Vector2 origin, Vector2 dir)
