@@ -144,14 +144,23 @@ namespace HeroFangame.Player
             wasHeld = isHeld && activatedThisFrame;
         }
 
-        private BeamHitResult Probe(Vector2 origin, Vector2 dir)
+        private BeamHitResult Probe(Vector2 origin, Vector2 dir, out bool hitScreenEdge)
         {
             // Never let the beam reach past the edge of the camera's
             // current view — enemies further along the level haven't
             // scrolled into frame yet and shouldn't be hittable before the
             // player can even see them.
-            float maxDistance = Mathf.Min(beamRange, CameraViewBounds.GetDistanceToEdge(origin.x, dir.x));
-            return AttackUtility.BoxCastSinglePeek(origin, new Vector2(beamSize.y, beamSize.y), dir, maxDistance, hittableLayers);
+            float screenEdgeDistance = CameraViewBounds.GetDistanceToEdge(origin.x, dir.x);
+            float maxDistance = Mathf.Min(beamRange, screenEdgeDistance);
+            var result = AttackUtility.BoxCastSinglePeek(origin, new Vector2(beamSize.y, beamSize.y), dir, maxDistance, hittableLayers);
+
+            // True only when nothing was actually hit AND the beam's reach
+            // was cut short specifically by the screen edge (not merely by
+            // its own beamRange running out) — lets callers show a scorch
+            // impact right at the boundary instead of the beam just
+            // vanishing into nothing.
+            hitScreenEdge = !result.DidHit && screenEdgeDistance < beamRange;
+            return result;
         }
 
         /// <summary>
@@ -167,7 +176,7 @@ namespace HeroFangame.Player
         {
             Vector2 dir = GetBeamDirection();
             Vector2 origin = (Vector2)transform.position + dir * beamOffset;
-            var hit = Probe(origin, dir);
+            var hit = Probe(origin, dir, out bool hitScreenEdge);
 
             if (hit.Target != null)
             {
@@ -180,7 +189,7 @@ namespace HeroFangame.Player
             }
 
             tapPulseTimeRemaining = tapPulseDuration;
-            ActivateBeamVisual(origin, dir, hit);
+            ActivateBeamVisual(origin, dir, hit, hitScreenEdge);
             SetCameraShake(true);
         }
 
@@ -188,9 +197,9 @@ namespace HeroFangame.Player
         {
             Vector2 dir = GetBeamDirection();
             Vector2 origin = (Vector2)transform.position + dir * beamOffset;
-            var hit = Probe(origin, dir);
+            var hit = Probe(origin, dir, out bool hitScreenEdge);
 
-            ActivateBeamVisual(origin, dir, hit);
+            ActivateBeamVisual(origin, dir, hit, hitScreenEdge);
             SetCameraShake(true);
 
             Collider2D hitCollider = hit.DidHit ? hit.Collider : null;
@@ -227,7 +236,7 @@ namespace HeroFangame.Player
             }
         }
 
-        private void ActivateBeamVisual(Vector2 origin, Vector2 dir, BeamHitResult hit)
+        private void ActivateBeamVisual(Vector2 origin, Vector2 dir, BeamHitResult hit, bool hitScreenEdge)
         {
             isBeamActive = true;
             controller.LockMovement(this);
@@ -239,8 +248,13 @@ namespace HeroFangame.Player
 
             if (impactEffect != null)
             {
-                if (hit.DidHit)
+                if (hit.DidHit || hitScreenEdge)
                 {
+                    // hit.Point already equals the clamped screen-edge point
+                    // when nothing was actually hit (AttackUtility falls
+                    // back to origin + direction * maxDistance), so the same
+                    // fire/burn/sparkle impact effect used for real contact
+                    // doubles as a "hit the edge of the screen" scorch mark.
                     impactEffect.UpdateContact(hit.Point, dir);
                 }
                 else

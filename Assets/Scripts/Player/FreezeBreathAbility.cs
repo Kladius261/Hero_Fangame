@@ -153,8 +153,10 @@ namespace HeroFangame.Player
             // current view — enemies further along the level haven't
             // scrolled into frame yet and shouldn't be hittable before the
             // player can even see them.
+            float desiredFarDistance = coneOffset + size.x;
             float availableDistance = CameraViewBounds.GetDistanceToEdge(transform.position.x, dir.x);
-            float clampedFarDistance = Mathf.Min(coneOffset + size.x, availableDistance);
+            bool clampedByScreen = availableDistance < desiredFarDistance;
+            float clampedFarDistance = Mathf.Min(desiredFarDistance, availableDistance);
             size.x = Mathf.Max(0f, clampedFarDistance - coneOffset);
 
             if (size.x <= 0f)
@@ -202,6 +204,20 @@ namespace HeroFangame.Player
             Vector2 visualOrigin = nearEdge + dir * (visualLength * 0.5f);
 
             coneEffect?.SetCone(visualOrigin, visualSize, angle, isTap);
+
+            if (clampedByScreen)
+            {
+                // The cone's reach was cut short by the camera edge rather
+                // than a physical obstacle — billow the mist/streaks against
+                // an invisible wall right at that boundary instead of just
+                // letting their emission shape end abruptly.
+                Vector2 boundaryPoint = (Vector2)transform.position + dir * clampedFarDistance;
+                coneEffect?.SetBoundaryContact(boundaryPoint, dir);
+            }
+            else
+            {
+                coneEffect?.StopBoundaryContact();
+            }
         }
 
         private void StopConeVisual()
@@ -214,6 +230,7 @@ namespace HeroFangame.Player
             }
             isConeActive = false;
             coneEffect?.StopCone();
+            coneEffect?.StopBoundaryContact();
         }
 
 #if UNITY_EDITOR
