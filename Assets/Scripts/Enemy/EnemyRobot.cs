@@ -1,17 +1,31 @@
 using UnityEngine;
+using HeroFangame.Camera;
 using HeroFangame.Core;
 
 namespace HeroFangame.Enemy
 {
     /// <summary>
     /// Basic robot: Chase / Frozen / Dead state machine. Chases the player
-    /// within aggroRange, accumulates Freeze Breath exposure (IFreezable) and
-    /// freezes solid once the threshold is crossed (stops moving, tints
-    /// frost, auto-thaws), and takes bonus damage while frozen (IDamageModifier).
-    /// Briefly suspends chase movement after any hit (knockbackRecoveryTime)
-    /// so an attack's physics knockback impulse can actually separate it from
-    /// the player instead of being overwritten by chase steering on the very
-    /// next physics step. Requires Damageable + DamageFlashAndDestroy on the
+    /// within aggroRange, accumulates Freeze Breath exposure (IFreezable),
+    /// and shows a progressively intensifying frost visual as exposure
+    /// rises even before freezing. Once exposure crosses freezeThreshold it
+    /// freezes solid (stops moving, tints frost, pops back a short, fixed
+    /// distance away from the player, and pulses a subtle camera shake)
+    /// and takes bonus damage while frozen (IDamageModifier). A solid
+    /// freeze has no auto-thaw
+    /// timer: the robot stays frozen indefinitely until either (a) it takes
+    /// any damage, which breaks the ice (dealing that hit's normal, frozen-
+    /// bonus damage first) and frees it back into Chase, or (b) it is hit
+    /// again by Freeze Breath, which frees it immediately instead of
+    /// re-freezing it (Freeze Breath acts as a toggle on an already-frozen
+    /// target). Any active freeze exposure (even below the freeze threshold)
+    /// halts chase movement immediately, so the robot visibly stops in its
+    /// tracks for as long as Freeze Breath is chilling it, resuming the
+    /// chase once exposure decays back to zero. Briefly suspends chase
+    /// movement after any hit (knockbackRecoveryTime) so an attack's
+    /// physics knockback impulse can actually separate it from the player
+    /// instead of being overwritten by chase steering on the very next
+    /// physics step. Requires Damageable + DamageFlashAndDestroy on the
     /// same GameObject.
     /// </summary>
     [RequireComponent(typeof(Damageable))]
@@ -30,11 +44,12 @@ namespace HeroFangame.Enemy
 
         [Header("Freeze")]
         [SerializeField] private float freezeThreshold = 100f;
-        [SerializeField] private float freezeDuration = 3f;
         [SerializeField] private float frozenDamageMultiplier = 2f;
         [SerializeField] private Color frozenTint = new Color(0.6f, 0.85f, 1f);
         [SerializeField] private float freezeExposureDecayPerSecond = 10f;
         [SerializeField] private EnemyFreezeVisualEffect freezeVisual;
+        [SerializeField] private float freezeKnockbackDistance = 0.4f;
+        [SerializeField] private float freezeShakeDuration = 0.12f;
 
         private Rigidbody2D rb;
         private SpriteRenderer spriteRenderer;
@@ -42,7 +57,6 @@ namespace HeroFangame.Enemy
 
         private State state = State.Chase;
         private float freezeExposure;
-        private float frozenTimeRemaining;
         private Color baseColor;
         private float knockbackTimeRemaining;
 
@@ -91,11 +105,8 @@ namespace HeroFangame.Enemy
 
             if (state == State.Frozen)
             {
-                frozenTimeRemaining -= Time.deltaTime;
-                if (frozenTimeRemaining <= 0f)
-                {
-                    Thaw();
-                }
+                // Solid-frozen has no auto-thaw timer: stays frozen until
+                // damaged or hit again by Freeze Breath.
                 return;
             }
 
@@ -104,6 +115,8 @@ namespace HeroFangame.Enemy
             {
                 freezeExposure = Mathf.Max(0f, freezeExposure - freezeExposureDecayPerSecond * Time.deltaTime);
             }
+
+            freezeVisual?.SetChillLevel(freezeExposure / freezeThreshold);
 
             if (knockbackTimeRemaining > 0f)
             {
@@ -128,6 +141,16 @@ namespace HeroFangame.Enemy
                 return;
             }
 
+            if (freezeExposure > 0f)
+            {
+                // Actively being chilled by Freeze Breath: hold still
+                // instead of chasing. This makes any exposure visibly halt
+                // the robot right away, not just once it fully solidifies
+                // into the Frozen state.
+                rb.linearVelocity = Vector2.zero;
+                return;
+            }
+
             Vector2 toPlayer = (Vector2)(player.position - transform.position);
             if (toPlayer.magnitude <= aggroRange)
             {
@@ -141,20 +164,46 @@ namespace HeroFangame.Enemy
 
         private void HandleDamaged(int amount)
         {
-            if (state == State.Chase)
-            {
-                knockbackTimeRemaining = knockbackRecoveryTime;
-            }
-        }
-
-        public void AddFreezeExposure(float amount)
-        {
-            if (state == State.Dead || state == State.Frozen)
+            if (state == State.Dead)
             {
                 return;
             }
 
+            if (state == State.Frozen)
+            {
+                // Any damage breaks the ice and frees the robot (the hit
+                // itself already applied its frozen-bonus damage, since
+                // Damageable computes/applies damage before firing
+                // OnDamaged).
+                Thaw();
+            }
+
+            knockbackTimeRemaining = knockbackRecoveryTime;
+        }
+
+        public void AddFreezeExposure(float amount, bool isNewActivation)
+        {
+            if (state == State.Dead)
+            {
+                return;
+            }
+
+            if (state == State.Frozen)
+            {
+                // Freeze Breath toggles an already-frozen target: a fresh
+                // press frees it instead of re-freezing it. A continuing
+                // hold that happened to freeze this target mid-stream is
+                // NOT a fresh press, so it must not immediately free it
+                // again — that would look like the ice melting on its own.
+                if (isNewActivation)
+                {
+                    Thaw();
+                }
+                return;
+            }
+
             freezeExposure += amount;
+            freezeVisual?.SetChillLevel(freezeExposure / freezeThreshold);
             if (freezeExposure >= freezeThreshold)
             {
                 Freeze();
@@ -164,13 +213,38 @@ namespace HeroFangame.Enemy
         private void Freeze()
         {
             state = State.Frozen;
-            frozenTimeRemaining = freezeDuration;
             rb.linearVelocity = Vector2.zero;
+            ApplyFreezeKnockback();
             if (spriteRenderer != null)
             {
                 spriteRenderer.color = frozenTint;
             }
             freezeVisual?.PlayFreezeIn();
+            CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
+        }
+
+        /// <summary>
+        /// A one-time, fixed-distance pop away from the player at the
+        /// instant of freezing, applied directly via rb.position rather
+        /// than a physics impulse — FixedUpdate() hard-zeroes velocity
+        /// every step while Frozen (to keep it immovable until damaged),
+        /// which would otherwise cancel an AddForce-based knockback before
+        /// it ever produced visible movement.
+        /// </summary>
+        private void ApplyFreezeKnockback()
+        {
+            if (player == null || freezeKnockbackDistance <= 0f)
+            {
+                return;
+            }
+
+            Vector2 away = (Vector2)transform.position - (Vector2)player.position;
+            if (away.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            rb.position += away.normalized * freezeKnockbackDistance;
         }
 
         private void Thaw()
