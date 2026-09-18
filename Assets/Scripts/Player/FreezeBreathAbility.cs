@@ -23,8 +23,8 @@ namespace HeroFangame.Player
     public class FreezeBreathAbility : MonoBehaviour
     {
         [Header("Cone Shape")]
-        [SerializeField] private Vector2 tapConeSize = new Vector2(2.5f, 1.5f);
-        [SerializeField] private Vector2 holdConeSize = new Vector2(3.5f, 2.2f);
+        [SerializeField] private Vector2 tapConeSize = new Vector2(3.5f, 1.0f);
+        [SerializeField] private Vector2 holdConeSize = new Vector2(5f, 1.4f);
         [SerializeField] private float coneOffset = 0.5f;
         [SerializeField] private LayerMask hittableLayers;
 
@@ -136,7 +136,19 @@ namespace HeroFangame.Player
             }
 
             isConeActive = true;
-            coneEffect?.SetCone(origin, size, angle, isTap);
+
+            // Visually clip the cone at the nearest hittable surface so the
+            // mist wraps around the target instead of visibly passing
+            // through it — same convention as HeatVisionAbility's beam
+            // clipping. Damage/exposure above is unaffected: it still uses
+            // the full box, so every enemy inside it is still hit.
+            Vector2 nearEdge = (Vector2)transform.position + dir * coneOffset;
+            var probe = AttackUtility.BoxCastSinglePeek(nearEdge, new Vector2(size.y, size.y), dir, size.x, hittableLayers);
+            float visualLength = probe.DidHit ? Mathf.Max(probe.Distance, 0.5f) : size.x;
+            Vector2 visualSize = new Vector2(visualLength, size.y);
+            Vector2 visualOrigin = nearEdge + dir * (visualLength * 0.5f);
+
+            coneEffect?.SetCone(visualOrigin, visualSize, angle, isTap);
         }
 
         private void StopConeVisual()

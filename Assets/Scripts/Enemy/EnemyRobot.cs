@@ -43,7 +43,7 @@ namespace HeroFangame.Enemy
         [SerializeField] private float knockbackRecoveryTime = 0.35f;
 
         [Header("Freeze")]
-        [SerializeField] private float freezeThreshold = 100f;
+        [SerializeField] private float freezeThreshold = 25f;
         [SerializeField] private float frozenDamageMultiplier = 2f;
         [SerializeField] private Color frozenTint = new Color(0.6f, 0.85f, 1f);
         [SerializeField] private float freezeExposureDecayPerSecond = 10f;

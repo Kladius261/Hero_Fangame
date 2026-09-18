@@ -78,7 +78,15 @@
       "Bash(tasklist)",
       "Bash(MSYS_NO_PATHCONV=1 unity command apply_prefab_overrides --format json --instance \"/Player\")",
       "Bash(tasklist //FI \"IMAGENAME eq Unity.exe\")",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(powershell -Command \"[guid]::NewGuid\\(\\).ToString\\('N'\\)\")",
+      "mcp__unity-editor-mcp__eval",
+      "mcp__unity-editor-mcp__clear_console",
+      "mcp__unity-editor-mcp__recompile",
+      "Bash(where ffmpeg:*)",
+      "Bash(where ffprobe:*)",
+      "Bash(python -c \"import cv2\")",
+      "mcp__unity-editor-mcp__console_status"
     ]
   }
 }
