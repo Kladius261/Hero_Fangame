@@ -44,11 +44,15 @@ namespace HeroFangame.Player
         [SerializeField] private FreezeBreathConeEffect coneEffect;
         [SerializeField] private float breathShakeDuration = 0.08f;
 
+        [Header("Aim")]
+        [SerializeField] private float aimSweepSpeedDegreesPerSecond = 180f;
+
         private PlayerInputHandler input;
         private PlayerController controller;
         private PowerGauge power;
         private AbilityLock abilityLock;
         private CameraShake cameraShake;
+        private AbilityAimController aimController;
 
         private bool wasHeld;
         private float tapPulseTimeRemaining;
@@ -64,6 +68,7 @@ namespace HeroFangame.Player
             {
                 abilityLock = gameObject.AddComponent<AbilityLock>();
             }
+            aimController = new AbilityAimController(aimSweepSpeedDegreesPerSecond);
         }
 
         private void Update()
@@ -136,18 +141,18 @@ namespace HeroFangame.Player
         }
 
         /// <summary>
-        /// Freeze Breath only ever fires straight left or right (never
-        /// up/down or diagonal), regardless of the player's full analog
-        /// Facing — mirrors HeatVisionAbility.GetBeamDirection().
+        /// Freeze Breath fires along the player's horizontal Facing, tilted
+        /// up/down by the Up/Down arrow keys via <see cref="aimController"/>
+        /// — mirrors HeatVisionAbility.GetBeamDirection().
         /// </summary>
-        private Vector2 GetBreathDirection()
+        private Vector2 GetBreathDirection(bool isNewActivation)
         {
-            return controller.Facing.x < 0f ? Vector2.left : Vector2.right;
+            return aimController.Resolve(isNewActivation, input.MoveInput, controller.Facing, Time.deltaTime);
         }
 
         private void ApplyCone(Vector2 size, int damage, float exposure, bool isTap, bool isNewActivation)
         {
-            Vector2 dir = GetBreathDirection();
+            Vector2 dir = GetBreathDirection(isNewActivation);
 
             // Never let the cone reach past the edge of the camera's
             // current view — enemies further along the level haven't
@@ -237,7 +242,7 @@ namespace HeroFangame.Player
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
-            Vector2 facing = Application.isPlaying && controller != null ? GetBreathDirection() : Vector2.right;
+            Vector2 facing = Application.isPlaying && controller != null ? aimController.CurrentDirection(controller.Facing) : Vector2.right;
             Vector2 origin = (Vector2)transform.position + facing * (coneOffset + holdConeSize.x * 0.5f);
             Gizmos.color = Color.blue;
             Gizmos.matrix = Matrix4x4.TRS(origin, Quaternion.Euler(0, 0, Vector2.SignedAngle(Vector2.right, facing)), Vector3.one);

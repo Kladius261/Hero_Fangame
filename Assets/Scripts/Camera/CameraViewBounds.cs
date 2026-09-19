@@ -45,11 +45,19 @@ namespace HeroFangame.Camera
         }
 
         /// <summary>
-        /// Distance from <paramref name="originX"/> toward the given
-        /// horizontal direction (positive = right, negative = left) to the
-        /// current camera's visible edge, clamped to zero or more. Returns
-        /// float.MaxValue if there's no camera to bound against, so callers
-        /// naturally fall back to their own unclamped range.
+        /// Distance to travel from <paramref name="originX"/> along a
+        /// direction whose horizontal component is <paramref name="dirX"/>
+        /// (positive = rightward, negative = leftward) before its X
+        /// coordinate reaches the current camera's visible edge, clamped to
+        /// zero or more. Returns float.MaxValue if there's no camera to
+        /// bound against, so callers naturally fall back to their own
+        /// unclamped range. <paramref name="dirX"/> is expected to be the X
+        /// component of a normalized direction vector (so |dirX| &lt;= 1) —
+        /// Heat Vision / Freeze Breath can now fire at an angle rather than
+        /// strictly horizontally, so the raw horizontal distance to the edge
+        /// is divided by |dirX| to get the actual travel distance along that
+        /// angled direction (a no-op for purely horizontal fire, where
+        /// |dirX| == 1).
         /// </summary>
         public static float GetDistanceToEdge(float originX, float dirX)
         {
@@ -59,8 +67,18 @@ namespace HeroFangame.Camera
             }
 
             float edge = dirX < 0f ? minX : maxX;
-            float distance = dirX < 0f ? (originX - edge) : (edge - originX);
-            return Mathf.Max(0f, distance);
+            float horizontalDistance = dirX < 0f ? (originX - edge) : (edge - originX);
+            horizontalDistance = Mathf.Max(0f, horizontalDistance);
+
+            float absDirX = Mathf.Abs(dirX);
+            if (absDirX < 0.0001f)
+            {
+                // Direction is (near-)vertical — it never makes horizontal
+                // progress toward either edge.
+                return float.MaxValue;
+            }
+
+            return horizontalDistance / absDirX;
         }
     }
 }

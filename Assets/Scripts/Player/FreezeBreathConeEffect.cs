@@ -130,7 +130,13 @@ namespace HeroFangame.Player
             // axis as the plane's normal. Orient it to face back toward the
             // player (opposing the breath's direction) so outbound
             // particles collide against it instead of passing through.
-            plane.rotation = Quaternion.Euler(0f, 0f, direction.x > 0f ? 90f : -90f);
+            // Generalized from a hard-coded +/-90 (which only worked for
+            // purely horizontal direction) to also stay correct now that
+            // Freeze Breath can fire at an angle: rotating the default up
+            // axis by (direction's angle + 90) always lands it opposite
+            // direction, and reduces to the old +/-90 exactly when
+            // direction is horizontal.
+            plane.rotation = Quaternion.Euler(0f, 0f, Vector2.SignedAngle(Vector2.right, direction) + 90f);
 
             if (!isBoundaryActive)
             {

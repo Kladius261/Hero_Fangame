@@ -48,11 +48,15 @@ namespace HeroFangame.Player
         [SerializeField] private HeatVisionBeamRenderer beamRenderer;
         [SerializeField] private HeatVisionImpactEffect impactEffect;
 
+        [Header("Aim")]
+        [SerializeField] private float aimSweepSpeedDegreesPerSecond = 180f;
+
         private PlayerInputHandler input;
         private PlayerController controller;
         private PowerGauge power;
         private AbilityLock abilityLock;
         private CameraShake cameraShake;
+        private AbilityAimController aimController;
 
         private bool wasHeld;
         private float tickTimer;
@@ -72,6 +76,7 @@ namespace HeroFangame.Player
             {
                 abilityLock = gameObject.AddComponent<AbilityLock>();
             }
+            aimController = new AbilityAimController(aimSweepSpeedDegreesPerSecond);
         }
 
         private void Update()
@@ -164,17 +169,18 @@ namespace HeroFangame.Player
         }
 
         /// <summary>
-        /// Heat Vision only ever fires straight left or right (never up/down
-        /// or diagonal), regardless of the player's full analog Facing.
+        /// Heat Vision fires along the player's horizontal Facing, tilted
+        /// up/down by the Up/Down arrow keys via <see cref="aimController"/>
+        /// (see AbilityAimController for the exact aim rules).
         /// </summary>
-        private Vector2 GetBeamDirection()
+        private Vector2 GetBeamDirection(bool isNewActivation)
         {
-            return controller.Facing.x < 0f ? Vector2.left : Vector2.right;
+            return aimController.Resolve(isNewActivation, input.MoveInput, controller.Facing, Time.deltaTime);
         }
 
         private void FireTap()
         {
-            Vector2 dir = GetBeamDirection();
+            Vector2 dir = GetBeamDirection(isNewActivation: true);
             Vector2 origin = (Vector2)transform.position + dir * beamOffset;
             var hit = Probe(origin, dir, out bool hitScreenEdge);
 
@@ -195,7 +201,7 @@ namespace HeroFangame.Player
 
         private void ResolveHoldFrame(bool doDamageTick)
         {
-            Vector2 dir = GetBeamDirection();
+            Vector2 dir = GetBeamDirection(isNewActivation: false);
             Vector2 origin = (Vector2)transform.position + dir * beamOffset;
             var hit = Probe(origin, dir, out bool hitScreenEdge);
 
@@ -293,7 +299,7 @@ namespace HeroFangame.Player
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
-            Vector2 facing = Application.isPlaying && controller != null ? GetBeamDirection() : Vector2.right;
+            Vector2 facing = Application.isPlaying && controller != null ? aimController.CurrentDirection(controller.Facing) : Vector2.right;
             Vector2 origin = (Vector2)transform.position + facing * beamOffset;
             Vector2 end = origin + facing * beamRange;
             float angle = Vector2.SignedAngle(Vector2.right, facing);
