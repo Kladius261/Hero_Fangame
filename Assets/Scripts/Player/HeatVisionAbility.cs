@@ -191,6 +191,7 @@ namespace HeroFangame.Player
                 if (rb != null)
                 {
                     rb.AddForce(dir * knockbackForce, ForceMode2D.Impulse);
+                    hit.Collider.GetComponentInParent<HitSquashEffect>()?.PlaySquash();
                 }
             }
 
@@ -238,6 +239,7 @@ namespace HeroFangame.Player
                 if (rb != null)
                 {
                     rb.AddForce(dir * knockbackForce, ForceMode2D.Impulse);
+                    hit.Collider.GetComponentInParent<HitSquashEffect>()?.PlaySquash();
                 }
             }
         }

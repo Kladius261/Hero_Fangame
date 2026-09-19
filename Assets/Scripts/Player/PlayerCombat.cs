@@ -1,6 +1,7 @@
 using UnityEngine;
 using HeroFangame.Combat;
 using HeroFangame.Core;
+using HeroFangame.Camera;
 
 namespace HeroFangame.Player
 {
@@ -24,6 +25,10 @@ namespace HeroFangame.Player
         [SerializeField] private float hitboxDistance = 0.8f;
         [SerializeField] private LayerMask hittableLayers;
         [SerializeField] private float knockbackForce = 6f;
+
+        [Header("Hit Juice")]
+        [SerializeField] private float hitShakeDuration = 0.08f;
+        [SerializeField] private float hitStopDuration = 0.1f;
 
         private PlayerInputHandler input;
         private PlayerController controller;
@@ -81,6 +86,7 @@ namespace HeroFangame.Player
                 knockbackForce,
                 out int hitCount);
 
+            bool landedHit = false;
             for (int i = 0; i < hitCount; i++)
             {
                 var hit = hits[i];
@@ -91,8 +97,16 @@ namespace HeroFangame.Player
                 var damageable = hit.GetComponentInParent<Damageable>();
                 if (damageable != null)
                 {
+                    landedHit = true;
                     hitEffect.PlayRandomAt(hit.bounds.center);
+                    hit.GetComponentInParent<HitSquashEffect>()?.PlaySquash();
                 }
+            }
+
+            if (landedHit)
+            {
+                CameraShake.GetOrCreate()?.Pulse(hitShakeDuration);
+                HitStop.GetOrCreate()?.Trigger(hitStopDuration);
             }
 
             comboStep = (comboStep + 1) % Mathf.Max(1, comboLength);

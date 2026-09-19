@@ -58,10 +58,12 @@ namespace HeroFangame.Enemy
         [SerializeField] private EnemyFreezeVisualEffect freezeVisual;
         [SerializeField] private float freezeKnockbackDistance = 0.4f;
         [SerializeField] private float freezeShakeDuration = 0.12f;
+        [SerializeField] private float iceBreakHitStopDuration = 0.2f;
 
         private Rigidbody2D rb;
         private SpriteRenderer spriteRenderer;
         private Damageable damageable;
+        private HitSquashEffect squashEffect;
 
         private State state = State.Wander;
         private float freezeExposure;
@@ -78,6 +80,7 @@ namespace HeroFangame.Enemy
             rb.gravityScale = 0f;
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             damageable = GetComponent<Damageable>();
+            squashEffect = GetComponent<HitSquashEffect>();
 
             if (spriteRenderer != null)
             {
@@ -243,6 +246,8 @@ namespace HeroFangame.Enemy
                 Thaw(shattered: true);
                 ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
                 CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
+                HitStop.GetOrCreate()?.Trigger(iceBreakHitStopDuration);
+                squashEffect?.PlaySquash();
             }
 
             knockbackTimeRemaining = knockbackRecoveryTime;

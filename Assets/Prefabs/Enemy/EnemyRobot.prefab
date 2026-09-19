@@ -7181,6 +7181,7 @@ GameObject:
   - component: {fileID: 1256478522457239791}
   - component: {fileID: 3770009937512400177}
   - component: {fileID: 2161864642756963197}
+  - component: {fileID: 6939893500856688901}
   m_Layer: 9
   m_Name: EnemyRobot
   m_TagString: Enemy
@@ -7383,6 +7384,7 @@ MonoBehaviour:
   freezeVisual: {fileID: 2161864642756963197}
   freezeKnockbackDistance: 0.4
   freezeShakeDuration: 0.12
+  iceBreakHitStopDuration: 0.2
 --- !u!114 &2161864642756963197
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7403,3 +7405,18 @@ MonoBehaviour:
   iceFadeInDuration: 0.25
   iceFadeOutDuration: 0.4
   iceShatterFadeOutDuration: 0.1
+  shatterFlashDuration: 0.06
+--- !u!114 &6939893500856688901
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3598031541770938261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb90eab4944f52d45b3de080125dec8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Core.HitSquashEffect
+  squashDuration: 0.14
+  squashScale: {x: 1.2, y: 0.8}
