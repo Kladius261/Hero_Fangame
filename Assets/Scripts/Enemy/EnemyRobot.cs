@@ -19,8 +19,10 @@ namespace HeroFangame.Enemy
     /// bonus damage while frozen (IDamageModifier). A solid freeze has no
     /// auto-thaw timer: the robot stays frozen indefinitely until either
     /// (a) it takes any damage, which breaks the ice (dealing that hit's
-    /// normal, frozen-bonus damage first) and frees it back into
-    /// wandering (with a freshly-picked random direction), or (b) it is
+    /// normal, frozen-bonus damage first), plays a shatter flash/VFX, pops
+    /// the robot away from the player and pulses the camera by the same
+    /// amount as the initial freeze, and frees it back into wandering
+    /// (with a freshly-picked random direction), or (b) it is
     /// hit again by Freeze Breath, which frees it immediately instead of
     /// re-freezing it (Freeze Breath acts as a toggle on an already-frozen
     /// target). Any active freeze exposure (even below the freeze threshold)
@@ -235,8 +237,12 @@ namespace HeroFangame.Enemy
                 // Any damage breaks the ice and frees the robot (the hit
                 // itself already applied its frozen-bonus damage, since
                 // Damageable computes/applies damage before firing
-                // OnDamaged).
-                Thaw();
+                // OnDamaged). Breaking free gets the same pop-away
+                // knockback and camera shake as freezing did, so the
+                // moment reads with equal physicality in both directions.
+                Thaw(shattered: true);
+                ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
+                CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
             }
 
             knockbackTimeRemaining = knockbackRecoveryTime;
@@ -258,7 +264,7 @@ namespace HeroFangame.Enemy
                 // again — that would look like the ice melting on its own.
                 if (isNewActivation)
                 {
-                    Thaw();
+                    Thaw(shattered: false);
                 }
                 return;
             }
@@ -275,7 +281,7 @@ namespace HeroFangame.Enemy
         {
             state = State.Frozen;
             rb.linearVelocity = Vector2.zero;
-            ApplyFreezeKnockback();
+            ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
             if (spriteRenderer != null)
             {
                 spriteRenderer.color = frozenTint;
@@ -285,16 +291,17 @@ namespace HeroFangame.Enemy
         }
 
         /// <summary>
-        /// A one-time, fixed-distance pop away from the player at the
-        /// instant of freezing, applied directly via rb.position rather
-        /// than a physics impulse — FixedUpdate() hard-zeroes velocity
-        /// every step while Frozen (to keep it immovable until damaged),
-        /// which would otherwise cancel an AddForce-based knockback before
-        /// it ever produced visible movement.
+        /// A one-time, fixed-distance pop away from the player, applied
+        /// directly via rb.position rather than a physics impulse. Used
+        /// both at the instant of freezing (FixedUpdate() hard-zeroes
+        /// velocity every step while Frozen, which would otherwise cancel
+        /// an AddForce-based knockback before it ever produced visible
+        /// movement) and at the instant of shattering free, so both
+        /// transitions read with the same physical punch.
         /// </summary>
-        private void ApplyFreezeKnockback()
+        private void ApplyKnockbackAwayFromPlayer(float distance)
         {
-            if (player == null || freezeKnockbackDistance <= 0f)
+            if (player == null || distance <= 0f)
             {
                 return;
             }
@@ -305,10 +312,10 @@ namespace HeroFangame.Enemy
                 return;
             }
 
-            rb.position += away.normalized * freezeKnockbackDistance;
+            rb.position += away.normalized * distance;
         }
 
-        private void Thaw()
+        private void Thaw(bool shattered)
         {
             state = State.Wander;
             freezeExposure = 0f;
@@ -316,7 +323,14 @@ namespace HeroFangame.Enemy
             {
                 spriteRenderer.color = baseColor;
             }
-            freezeVisual?.PlayThaw();
+            if (shattered)
+            {
+                freezeVisual?.PlayShatter();
+            }
+            else
+            {
+                freezeVisual?.PlayThaw();
+            }
             // Pick a fresh heading so a just-thawed robot doesn't walk
             // straight back toward wherever it got frozen.
             PickNewWanderDirection();

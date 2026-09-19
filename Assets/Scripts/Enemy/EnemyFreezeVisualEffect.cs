@@ -29,12 +29,16 @@ namespace HeroFangame.Enemy
     {
         [SerializeField] private ParticleSystem freezeBurstParticles;
         [SerializeField] private ParticleSystem ambientFrostParticles;
+        [SerializeField] private ParticleSystem iceShatterParticles;
         [SerializeField] private SpriteRenderer iceOverlayRenderer;
         [SerializeField] private Color iceOverlayColor = new Color(0.75f, 0.9f, 1f, 0.55f);
         [SerializeField] private float iceFadeInDuration = 0.25f;
         [SerializeField] private float iceFadeOutDuration = 0.4f;
+        [SerializeField] private float iceShatterFadeOutDuration = 0.1f;
+        [SerializeField] private float shatterFlashDuration = 0.06f;
 
         private Coroutine fadeRoutine;
+        private WaitForSeconds shatterFlashWait;
         private bool isLocked;
         private bool isChilling;
 
@@ -45,6 +49,7 @@ namespace HeroFangame.Enemy
                 iceOverlayRenderer.color = new Color(iceOverlayColor.r, iceOverlayColor.g, iceOverlayColor.b, 0f);
                 iceOverlayRenderer.gameObject.SetActive(false);
             }
+            shatterFlashWait = new WaitForSeconds(shatterFlashDuration);
         }
 
         /// <summary>
@@ -118,6 +123,43 @@ namespace HeroFangame.Enemy
             {
                 RestartFade(0f, iceFadeOutDuration, deactivateAtEnd: true);
             }
+        }
+
+        /// <summary>
+        /// Discrete transition for a violent break-free (the player's hit
+        /// shattering the ice), as opposed to PlayThaw()'s smooth melt used
+        /// when Freeze Breath toggles a frozen target back off. Stops the
+        /// ambient frost loop immediately, fires a one-shot explosive
+        /// shatter burst, snaps the ice overlay to a bright white flash for
+        /// an instant, then fades it away almost instantly
+        /// (iceShatterFadeOutDuration) rather than the slow melt-fade.
+        /// </summary>
+        public void PlayShatter()
+        {
+            isLocked = false;
+
+            ambientFrostParticles?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            iceShatterParticles?.Play();
+
+            if (iceOverlayRenderer != null)
+            {
+                StopFadeRoutineIfRunning();
+                iceOverlayRenderer.gameObject.SetActive(true);
+                fadeRoutine = StartCoroutine(ShatterFlashRoutine());
+            }
+        }
+
+        /// <summary>
+        /// Snaps the overlay to solid white for shatterFlashDuration before
+        /// handing off to the normal fade-out, so the break-free moment
+        /// reads as a punchy flash rather than quietly dissolving straight
+        /// from the icy tint.
+        /// </summary>
+        private IEnumerator ShatterFlashRoutine()
+        {
+            iceOverlayRenderer.color = Color.white;
+            yield return shatterFlashWait;
+            fadeRoutine = StartCoroutine(FadeRoutine(0f, iceShatterFadeOutDuration, deactivateAtEnd: true));
         }
 
         private void StopFadeRoutineIfRunning()

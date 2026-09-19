@@ -1,5 +1,6 @@
 using UnityEngine;
 using HeroFangame.Combat;
+using HeroFangame.Core;
 
 namespace HeroFangame.Player
 {
@@ -10,6 +11,7 @@ namespace HeroFangame.Player
     /// </summary>
     [RequireComponent(typeof(PlayerInputHandler))]
     [RequireComponent(typeof(PlayerController))]
+    [RequireComponent(typeof(PunchHitEffect))]
     public class PlayerCombat : MonoBehaviour
     {
         [Header("Combo")]
@@ -25,6 +27,7 @@ namespace HeroFangame.Player
 
         private PlayerInputHandler input;
         private PlayerController controller;
+        private PunchHitEffect hitEffect;
 
         private int comboStep;
         private float comboTimer;
@@ -33,6 +36,7 @@ namespace HeroFangame.Player
         {
             input = GetComponent<PlayerInputHandler>();
             controller = GetComponent<PlayerController>();
+            hitEffect = GetComponent<PunchHitEffect>();
         }
 
         private void OnEnable()
@@ -66,7 +70,7 @@ namespace HeroFangame.Player
             Vector2 origin = (Vector2)transform.position + controller.Facing * hitboxDistance;
             float angle = Vector2.SignedAngle(Vector2.right, controller.Facing);
 
-            AttackUtility.OverlapBoxAndDamage(
+            Collider2D[] hits = AttackUtility.OverlapBoxAndDamage(
                 origin,
                 hitboxSize,
                 angle,
@@ -75,7 +79,21 @@ namespace HeroFangame.Player
                 gameObject,
                 controller.Facing,
                 knockbackForce,
-                out _);
+                out int hitCount);
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                var hit = hits[i];
+                if (hit == null)
+                {
+                    continue;
+                }
+                var damageable = hit.GetComponentInParent<Damageable>();
+                if (damageable != null)
+                {
+                    hitEffect.PlayRandomAt(hit.bounds.center);
+                }
+            }
 
             comboStep = (comboStep + 1) % Mathf.Max(1, comboLength);
             comboTimer = comboResetTime;
