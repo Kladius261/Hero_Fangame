@@ -5,39 +5,45 @@ using HeroFangame.Core;
 namespace HeroFangame.Enemy
 {
     /// <summary>
-    /// Basic robot: Chase / Frozen / Dead state machine. Chases the player
-    /// within aggroRange, accumulates Freeze Breath exposure (IFreezable),
-    /// and shows a progressively intensifying frost visual as exposure
-    /// rises even before freezing. Once exposure crosses freezeThreshold it
-    /// freezes solid (stops moving, tints frost, pops back a short, fixed
-    /// distance away from the player, and pulses a subtle camera shake)
-    /// and takes bonus damage while frozen (IDamageModifier). A solid
-    /// freeze has no auto-thaw
-    /// timer: the robot stays frozen indefinitely until either (a) it takes
-    /// any damage, which breaks the ice (dealing that hit's normal, frozen-
-    /// bonus damage first) and frees it back into Chase, or (b) it is hit
-    /// again by Freeze Breath, which frees it immediately instead of
+    /// Basic robot: Wander / Frozen / Dead state machine. Ignores the
+    /// player entirely and roams the level in random directions, changing
+    /// heading every minWanderInterval-maxWanderInterval seconds and
+    /// bouncing off walls/obstacles (reflecting off the contact normal,
+    /// with a little jitter to avoid stable ping-pong loops at corners).
+    /// It never reacts to the player, even when attacked or bumped into.
+    /// It also accumulates Freeze Breath exposure (IFreezable), and shows
+    /// a progressively intensifying frost visual as exposure rises even
+    /// before freezing. Once exposure crosses freezeThreshold it freezes
+    /// solid (stops moving, tints frost, pops back a short, fixed distance
+    /// away from the player, and pulses a subtle camera shake) and takes
+    /// bonus damage while frozen (IDamageModifier). A solid freeze has no
+    /// auto-thaw timer: the robot stays frozen indefinitely until either
+    /// (a) it takes any damage, which breaks the ice (dealing that hit's
+    /// normal, frozen-bonus damage first) and frees it back into
+    /// wandering (with a freshly-picked random direction), or (b) it is
+    /// hit again by Freeze Breath, which frees it immediately instead of
     /// re-freezing it (Freeze Breath acts as a toggle on an already-frozen
     /// target). Any active freeze exposure (even below the freeze threshold)
-    /// halts chase movement immediately, so the robot visibly stops in its
-    /// tracks for as long as Freeze Breath is chilling it, resuming the
-    /// chase once exposure decays back to zero. Briefly suspends chase
-    /// movement after any hit (knockbackRecoveryTime) so an attack's
-    /// physics knockback impulse can actually separate it from the player
-    /// instead of being overwritten by chase steering on the very next
-    /// physics step. Requires Damageable + DamageFlashAndDestroy on the
-    /// same GameObject.
+    /// halts wander movement immediately, so the robot visibly stops in its
+    /// tracks for as long as Freeze Breath is chilling it, resuming
+    /// wandering once exposure decays back to zero. Briefly suspends
+    /// wander movement after any hit (knockbackRecoveryTime) so an
+    /// attack's physics knockback impulse can actually separate it from
+    /// the player instead of being overwritten by wander steering on the
+    /// very next physics step. Requires Damageable + DamageFlashAndDestroy
+    /// on the same GameObject.
     /// </summary>
     [RequireComponent(typeof(Damageable))]
     [RequireComponent(typeof(Rigidbody2D))]
     public class EnemyRobot : MonoBehaviour, IFreezable, IDamageModifier
     {
-        private enum State { Chase, Frozen, Dead }
+        private enum State { Wander, Frozen, Dead }
 
-        [Header("Chase")]
+        [Header("Wander")]
         [SerializeField] private Transform player;
-        [SerializeField] private float aggroRange = 8f;
-        [SerializeField] private float moveSpeed = 2.5f;
+        [SerializeField] private float wanderSpeed = 2.5f;
+        [SerializeField] private float minWanderInterval = 1.0f;
+        [SerializeField] private float maxWanderInterval = 3.5f;
 
         [Header("Knockback")]
         [SerializeField] private float knockbackRecoveryTime = 0.35f;
@@ -55,10 +61,12 @@ namespace HeroFangame.Enemy
         private SpriteRenderer spriteRenderer;
         private Damageable damageable;
 
-        private State state = State.Chase;
+        private State state = State.Wander;
         private float freezeExposure;
         private Color baseColor;
         private float knockbackTimeRemaining;
+        private Vector2 wanderDirection;
+        private float wanderTimer;
 
         public bool IsFrozen => state == State.Frozen;
 
@@ -82,6 +90,12 @@ namespace HeroFangame.Enemy
                     player = playerObj.transform;
                 }
             }
+
+            PickNewWanderDirection();
+            // Stagger the first direction change across enemies so a
+            // scene full of them (all Awake()'d the same frame) doesn't
+            // re-roll direction in visible lockstep.
+            wanderTimer = Random.Range(0f, wanderTimer);
         }
 
         private void OnEnable()
@@ -110,7 +124,7 @@ namespace HeroFangame.Enemy
                 return;
             }
 
-            // Chase state: exposure decays when not actively being hit.
+            // Wander state: exposure decays when not actively being hit.
             if (freezeExposure > 0f)
             {
                 freezeExposure = Mathf.Max(0f, freezeExposure - freezeExposureDecayPerSecond * Time.deltaTime);
@@ -122,11 +136,17 @@ namespace HeroFangame.Enemy
             {
                 knockbackTimeRemaining -= Time.deltaTime;
             }
+
+            wanderTimer -= Time.deltaTime;
+            if (wanderTimer <= 0f)
+            {
+                PickNewWanderDirection();
+            }
         }
 
         private void FixedUpdate()
         {
-            if (state != State.Chase || player == null)
+            if (state != State.Wander)
             {
                 rb.linearVelocity = Vector2.zero;
                 return;
@@ -136,7 +156,7 @@ namespace HeroFangame.Enemy
             {
                 // Currently reeling from a hit: leave the physics-driven
                 // knockback velocity alone (it decays via linear damping)
-                // instead of instantly overwriting it with chase movement,
+                // instead of instantly overwriting it with wander movement,
                 // so a knockback actually creates visible separation.
                 return;
             }
@@ -144,22 +164,63 @@ namespace HeroFangame.Enemy
             if (freezeExposure > 0f)
             {
                 // Actively being chilled by Freeze Breath: hold still
-                // instead of chasing. This makes any exposure visibly halt
-                // the robot right away, not just once it fully solidifies
-                // into the Frozen state.
+                // instead of wandering. This makes any exposure visibly
+                // halt the robot right away, not just once it fully
+                // solidifies into the Frozen state.
                 rb.linearVelocity = Vector2.zero;
                 return;
             }
 
-            Vector2 toPlayer = (Vector2)(player.position - transform.position);
-            if (toPlayer.magnitude <= aggroRange)
+            rb.linearVelocity = wanderDirection * wanderSpeed;
+        }
+
+        /// <summary>
+        /// Picks a fresh random heading and resets the wander timer to a
+        /// random duration within [minWanderInterval, maxWanderInterval].
+        /// Built from an angle rather than Random.insideUnitCircle to
+        /// guarantee a unit-length result every time (insideUnitCircle can
+        /// return a near-zero vector that normalizes to Vector2.zero).
+        /// </summary>
+        private void PickNewWanderDirection()
+        {
+            float angle = Random.Range(0f, Mathf.PI * 2f);
+            wanderDirection = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            wanderTimer = Random.Range(minWanderInterval, maxWanderInterval);
+        }
+
+        /// <summary>
+        /// Bounces off walls/obstacles/other enemies by reflecting the
+        /// current wander direction off the contact normal, with a small
+        /// random jitter so it doesn't settle into a stable ping-pong loop
+        /// at corners or against another enemy. Never reacts to the
+        /// player: a contact-normal reflect off the player's collider
+        /// would, by construction, point away from them, which would read
+        /// as evasive behavior even though nothing here is actually aware
+        /// of the player. Bumping into the player still physically pushes
+        /// both bodies via Unity's own collision solver, same as today.
+        /// </summary>
+        private void OnCollisionEnter2D(Collision2D collision)
+        {
+            if (state != State.Wander)
             {
-                rb.linearVelocity = toPlayer.normalized * moveSpeed;
+                return;
             }
-            else
+
+            if (collision.collider.CompareTag("Player"))
             {
-                rb.linearVelocity = Vector2.zero;
+                return;
             }
+
+            Vector2 normal = collision.GetContact(0).normal;
+            Vector2 reflected = Vector2.Reflect(wanderDirection, normal);
+
+            float jitter = Random.Range(-15f, 15f) * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(jitter);
+            float sin = Mathf.Sin(jitter);
+            wanderDirection = new Vector2(
+                reflected.x * cos - reflected.y * sin,
+                reflected.x * sin + reflected.y * cos
+            ).normalized;
         }
 
         private void HandleDamaged(int amount)
@@ -249,13 +310,16 @@ namespace HeroFangame.Enemy
 
         private void Thaw()
         {
-            state = State.Chase;
+            state = State.Wander;
             freezeExposure = 0f;
             if (spriteRenderer != null)
             {
                 spriteRenderer.color = baseColor;
             }
             freezeVisual?.PlayThaw();
+            // Pick a fresh heading so a just-thawed robot doesn't walk
+            // straight back toward wherever it got frozen.
+            PickNewWanderDirection();
         }
 
         public float GetDamageMultiplier()

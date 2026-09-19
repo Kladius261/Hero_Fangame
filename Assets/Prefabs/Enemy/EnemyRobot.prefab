@@ -4886,7 +4886,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4ab2dca92acc3f4790903057665f4d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Core.Damageable
-  maxHP: 12
+  maxHP: 24
 --- !u!114 &1256478522457239791
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4916,8 +4916,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Enemy.EnemyRobot
   player: {fileID: 0}
-  aggroRange: 8
-  moveSpeed: 2.5
+  wanderSpeed: 2.5
+  minWanderInterval: 1
+  maxWanderInterval: 3.5
   knockbackRecoveryTime: 0.35
   freezeThreshold: 25
   frozenDamageMultiplier: 2
