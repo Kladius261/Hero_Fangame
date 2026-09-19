@@ -18,6 +18,7 @@ namespace HeroFangame.Core
         private Damageable damageable;
         private Color originalColor;
         private Coroutine flashRoutine;
+        private WaitForSeconds flashWait;
 
         private void Awake()
         {
@@ -30,6 +31,7 @@ namespace HeroFangame.Core
             {
                 originalColor = spriteRenderer.color;
             }
+            flashWait = new WaitForSeconds(flashDuration);
         }
 
         private void OnEnable()
@@ -60,7 +62,7 @@ namespace HeroFangame.Core
         private IEnumerator FlashRoutine()
         {
             spriteRenderer.color = flashColor;
-            yield return new WaitForSeconds(flashDuration);
+            yield return flashWait;
             spriteRenderer.color = originalColor;
             flashRoutine = null;
         }

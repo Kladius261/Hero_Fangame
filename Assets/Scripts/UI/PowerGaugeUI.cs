@@ -42,6 +42,15 @@ namespace HeroFangame.UI
         private Text label;
         private static Sprite solidSprite;
 
+        // Setting Image.fillAmount/.color marks the graphic dirty and forces a
+        // canvas mesh rebuild — this HUD element is always on from the moment
+        // the Player spawns, so writing every frame regardless of change costs
+        // a rebuild forever, even fully idle. Track the last-applied fraction
+        // and the border's rest/pulsing state so writes only happen when the
+        // displayed value actually needs to change.
+        private float lastFraction = -1f;
+        private bool borderAtRestColor;
+
         /// <summary>Lazily builds a shared 1x1 opaque-white sprite used solely to make
         /// Image.Type.Filled actually clip its mesh (see fillImage setup in BuildUI).</summary>
         private static Sprite GetOrCreateSolidSprite()
@@ -162,22 +171,29 @@ namespace HeroFangame.UI
             }
 
             float fraction = target.Max > 0f ? target.Current / target.Max : 0f;
-            fillImage.fillAmount = fraction;
 
-            fillImage.color = fraction <= 0.5f
-                ? Color.Lerp(fillColorLow, fillColorMid, fraction / 0.5f)
-                : Color.Lerp(fillColorMid, fillColorHigh, (fraction - 0.5f) / 0.5f);
+            if (!Mathf.Approximately(fraction, lastFraction))
+            {
+                lastFraction = fraction;
+                fillImage.fillAmount = fraction;
+                fillImage.color = fraction <= 0.5f
+                    ? Color.Lerp(fillColorLow, fillColorMid, fraction / 0.5f)
+                    : Color.Lerp(fillColorMid, fillColorHigh, (fraction - 0.5f) / 0.5f);
+            }
 
             if (borderImage != null)
             {
                 if (fraction <= lowPowerThreshold)
                 {
+                    // Continuously animated while low — must write every frame.
                     float pulse = (Mathf.Sin(Time.unscaledTime * pulseSpeed) + 1f) * 0.5f;
                     borderImage.color = Color.Lerp(borderColor, fillColorLow, pulse * pulseStrength + (1f - pulseStrength));
+                    borderAtRestColor = false;
                 }
-                else
+                else if (!borderAtRestColor)
                 {
                     borderImage.color = borderColor;
+                    borderAtRestColor = true;
                 }
             }
         }

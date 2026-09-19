@@ -131,7 +131,12 @@
       "Bash(\"/c/Program Files/Krita \\(x64\\)/bin/ffmpeg.exe\" -i \"/c/Users/gohun/AppData/Local/Temp/freeze_video2.mp4\")",
       "Bash(rm -rf /tmp/freeze_frames2)",
       "Bash(mkdir -p /tmp/freeze_frames2)",
-      "Bash(\"/c/Program Files/Krita \\(x64\\)/bin/ffmpeg.exe\" -i \"/c/Users/gohun/AppData/Local/Temp/freeze_video2.mp4\" -vf \"fps=8\" /c/Users/gohun/AppData/Local/Temp/freeze_frames2/frame_%03d.png)"
+      "Bash(\"/c/Program Files/Krita \\(x64\\)/bin/ffmpeg.exe\" -i \"/c/Users/gohun/AppData/Local/Temp/freeze_video2.mp4\" -vf \"fps=8\" /c/Users/gohun/AppData/Local/Temp/freeze_frames2/frame_%03d.png)",
+      "Bash(powershell -Command \"Copy-Item -LiteralPath 'C:\\\\Users\\\\gohun\\\\OneDrive\\\\문서\\\\oCam\\\\녹화_2026_09_19_07_08_59_515.mp4' -Destination 'C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\freeze_video3.mp4'\")",
+      "Bash(\"/c/Program Files/Krita \\(x64\\)/bin/ffmpeg.exe\" -i \"/c/Users/gohun/AppData/Local/Temp/freeze_video3.mp4\")",
+      "Bash(rm -rf /tmp/freeze_frames3)",
+      "Bash(mkdir -p /tmp/freeze_frames3)",
+      "Bash(\"/c/Program Files/Krita \\(x64\\)/bin/ffmpeg.exe\" -i \"/c/Users/gohun/AppData/Local/Temp/freeze_video3.mp4\" -vf \"fps=8\" /c/Users/gohun/AppData/Local/Temp/freeze_frames3/frame_%03d.png)"
     ]
   }
 }

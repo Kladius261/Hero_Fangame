@@ -11,6 +11,12 @@ namespace HeroFangame.Camera
     /// </summary>
     public static class CameraViewBounds
     {
+        // Cached instead of re-resolving via Camera.main every call — Camera.main
+        // internally does a FindGameObjectWithTag scan, and this is queried every
+        // frame while Heat Vision or Freeze Breath is held. Re-fetched only when
+        // null/destroyed (mirrors CameraShake.GetOrCreate()'s lazy-cache pattern).
+        private static UnityEngine.Camera cachedCam;
+
         /// <summary>
         /// Returns the main camera's current visible world-space X range.
         /// Assumes an orthographic camera (true for this project). Returns
@@ -19,7 +25,11 @@ namespace HeroFangame.Camera
         /// </summary>
         public static bool TryGetHorizontalBounds(out float minX, out float maxX)
         {
-            var cam = UnityEngine.Camera.main;
+            if (cachedCam == null)
+            {
+                cachedCam = UnityEngine.Camera.main;
+            }
+            var cam = cachedCam;
             if (cam == null || !cam.orthographic)
             {
                 minX = float.NegativeInfinity;

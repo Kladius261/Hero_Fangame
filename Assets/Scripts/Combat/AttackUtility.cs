@@ -23,6 +23,14 @@ namespace HeroFangame.Combat
             public float Distance;
         }
 
+        // Reusable buffers for the NonAlloc Physics2D query variants below —
+        // these queries run every frame while Heat Vision / Freeze Breath is
+        // held, so a fresh managed array per call would otherwise churn GC
+        // continuously. Sized generously for expected on-screen hit counts;
+        // results are trimmed to the actual hit count returned by Unity.
+        private static readonly RaycastHit2D[] raycastBuffer = new RaycastHit2D[32];
+        private static readonly Collider2D[] colliderBuffer = new Collider2D[32];
+
         /// <summary>
         /// Sweeps a thin box along <paramref name="direction"/> for
         /// <paramref name="maxDistance"/> and returns only the single closest
@@ -40,13 +48,14 @@ namespace HeroFangame.Combat
         {
             direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
             float angle = Vector2.SignedAngle(Vector2.right, direction);
-            RaycastHit2D[] hits = Physics2D.BoxCastAll(origin, boxThickness, angle, direction, maxDistance, mask);
+            int hitCount = Physics2D.BoxCastNonAlloc(origin, boxThickness, angle, direction, raycastBuffer, maxDistance, mask);
 
             bool found = false;
             RaycastHit2D closest = default;
             float closestDist = float.MaxValue;
-            foreach (var h in hits)
+            for (int i = 0; i < hitCount; i++)
             {
+                var h = raycastBuffer[i];
                 if (h.collider == null)
                 {
                     continue;
@@ -71,7 +80,11 @@ namespace HeroFangame.Combat
 
         /// <summary>
         /// Runs an OverlapBox against the given mask, applies damage + knockback
-        /// via Damageable.TakeDamage to every hit, and returns the hit colliders.
+        /// via Damageable.TakeDamage to every hit, and returns the hit colliders
+        /// via a shared internal buffer with <paramref name="hitCount"/> valid
+        /// entries at the front — only indices [0, hitCount) are meaningful;
+        /// callers must not hold onto the returned array past their own use,
+        /// since it's reused by the next NonAlloc query.
         /// </summary>
         public static Collider2D[] OverlapBoxAndDamage(
             Vector2 center,
@@ -81,11 +94,12 @@ namespace HeroFangame.Combat
             int damage,
             GameObject source,
             Vector2 knockbackDirection,
-            float knockbackForce)
+            float knockbackForce,
+            out int hitCount)
         {
-            Collider2D[] hits = Physics2D.OverlapBoxAll(center, size, angle, mask);
-            ApplyDamage(hits, damage, source, knockbackDirection, knockbackForce);
-            return hits;
+            hitCount = Physics2D.OverlapBoxNonAlloc(center, size, angle, colliderBuffer, mask);
+            ApplyDamage(colliderBuffer, hitCount, damage, source, knockbackDirection, knockbackForce);
+            return colliderBuffer;
         }
 
         public static Collider2D[] OverlapCircleAndDamage(
@@ -95,23 +109,26 @@ namespace HeroFangame.Combat
             int damage,
             GameObject source,
             Vector2 knockbackDirection,
-            float knockbackForce)
+            float knockbackForce,
+            out int hitCount)
         {
-            Collider2D[] hits = Physics2D.OverlapCircleAll(center, radius, mask);
-            ApplyDamage(hits, damage, source, knockbackDirection, knockbackForce);
-            return hits;
+            hitCount = Physics2D.OverlapCircleNonAlloc(center, radius, colliderBuffer, mask);
+            ApplyDamage(colliderBuffer, hitCount, damage, source, knockbackDirection, knockbackForce);
+            return colliderBuffer;
         }
 
         private static void ApplyDamage(
             Collider2D[] hits,
+            int hitCount,
             int damage,
             GameObject source,
             Vector2 knockbackDirection,
             float knockbackForce)
         {
             var info = new DamageInfo(source, knockbackDirection, knockbackForce);
-            foreach (var hit in hits)
+            for (int i = 0; i < hitCount; i++)
             {
+                var hit = hits[i];
                 if (hit == null)
                 {
                     continue;

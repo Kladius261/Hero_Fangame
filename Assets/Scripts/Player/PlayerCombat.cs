@@ -74,7 +74,8 @@ namespace HeroFangame.Player
                 damage,
                 gameObject,
                 controller.Facing,
-                knockbackForce);
+                knockbackForce,
+                out _);
 
             comboStep = (comboStep + 1) % Mathf.Max(1, comboLength);
             comboTimer = comboResetTime;

@@ -182,11 +182,12 @@ namespace HeroFangame.Player
                 damage,
                 gameObject,
                 dir,
-                knockbackForce: 0f);
+                knockbackForce: 0f,
+                out int hitCount);
 
-            foreach (var hit in hits)
+            for (int i = 0; i < hitCount; i++)
             {
-                var freezable = hit.GetComponentInParent<IFreezable>();
+                var freezable = hits[i].GetComponentInParent<IFreezable>();
                 freezable?.AddFreezeExposure(exposure, isNewActivation);
             }
 
