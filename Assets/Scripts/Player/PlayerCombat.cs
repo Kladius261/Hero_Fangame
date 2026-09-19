@@ -13,6 +13,7 @@ namespace HeroFangame.Player
     [RequireComponent(typeof(PlayerInputHandler))]
     [RequireComponent(typeof(PlayerController))]
     [RequireComponent(typeof(PunchHitEffect))]
+    [RequireComponent(typeof(PunchHitSound))]
     public class PlayerCombat : MonoBehaviour
     {
         [Header("Combo")]
@@ -28,11 +29,13 @@ namespace HeroFangame.Player
 
         [Header("Hit Juice")]
         [SerializeField] private float hitShakeDuration = 0.08f;
+        [SerializeField] private float hitShakeAmplitudeMultiplier = 1.25f;
         [SerializeField] private float hitStopDuration = 0.1f;
 
         private PlayerInputHandler input;
         private PlayerController controller;
         private PunchHitEffect hitEffect;
+        private PunchHitSound hitSound;
 
         private int comboStep;
         private float comboTimer;
@@ -42,6 +45,7 @@ namespace HeroFangame.Player
             input = GetComponent<PlayerInputHandler>();
             controller = GetComponent<PlayerController>();
             hitEffect = GetComponent<PunchHitEffect>();
+            hitSound = GetComponent<PunchHitSound>();
         }
 
         private void OnEnable()
@@ -99,13 +103,14 @@ namespace HeroFangame.Player
                 {
                     landedHit = true;
                     hitEffect.PlayRandomAt(hit.bounds.center);
-                    hit.GetComponentInParent<HitSquashEffect>()?.PlaySquash();
+                    hitSound.PlayRandom();
+                    hit.GetComponentInParent<HitSquashEffect>()?.PlaySquash(controller.Facing);
                 }
             }
 
             if (landedHit)
             {
-                CameraShake.GetOrCreate()?.Pulse(hitShakeDuration);
+                CameraShake.GetOrCreate()?.Pulse(hitShakeDuration, hitShakeAmplitudeMultiplier);
                 HitStop.GetOrCreate()?.Trigger(hitStopDuration);
             }
 

@@ -25,6 +25,7 @@ namespace HeroFangame.Camera
         private Vector3 basePosition;
         private bool shaking;
         private float pulseTimeRemaining;
+        private float pulseAmplitudeMultiplier = 1f;
         private float weight;
         private float seedX;
         private float seedY;
@@ -66,10 +67,17 @@ namespace HeroFangame.Camera
         /// itself, for a one-off impact rather than a sustained effect tied
         /// to an ability being held. Safe to call repeatedly; a new pulse
         /// only extends the shake if it would last longer than what's
-        /// already remaining.
+        /// already remaining. <paramref name="amplitudeMultiplier"/> scales
+        /// this pulse's strength relative to the base amplitude (1 = normal);
+        /// it only takes effect when this pulse is the one extending/winning
+        /// the current shake, and reverts to normal once the pulse ends.
         /// </summary>
-        public void Pulse(float duration)
+        public void Pulse(float duration, float amplitudeMultiplier = 1f)
         {
+            if (duration >= pulseTimeRemaining)
+            {
+                pulseAmplitudeMultiplier = amplitudeMultiplier;
+            }
             pulseTimeRemaining = Mathf.Max(pulseTimeRemaining, duration);
         }
 
@@ -78,6 +86,10 @@ namespace HeroFangame.Camera
             if (pulseTimeRemaining > 0f)
             {
                 pulseTimeRemaining -= Time.deltaTime;
+                if (pulseTimeRemaining <= 0f)
+                {
+                    pulseAmplitudeMultiplier = 1f;
+                }
             }
 
             float targetWeight = (shaking || pulseTimeRemaining > 0f) ? 1f : 0f;
@@ -94,7 +106,8 @@ namespace HeroFangame.Camera
             float nx = (Mathf.PerlinNoise(seedX, t) - 0.5f) * 2f;
             float ny = (Mathf.PerlinNoise(seedY, t) - 0.5f) * 2f;
 
-            Vector3 offset = new Vector3(nx, ny, 0f) * (amplitude * weight);
+            float effectiveAmplitude = amplitude * (pulseTimeRemaining > 0f ? pulseAmplitudeMultiplier : 1f);
+            Vector3 offset = new Vector3(nx, ny, 0f) * (effectiveAmplitude * weight);
             cam.localPosition = basePosition + offset;
         }
     }

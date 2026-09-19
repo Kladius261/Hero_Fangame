@@ -244,10 +244,10 @@ namespace HeroFangame.Enemy
                 // knockback and camera shake as freezing did, so the
                 // moment reads with equal physicality in both directions.
                 Thaw(shattered: true);
-                ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
+                Vector2 breakDirection = ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
                 CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
                 HitStop.GetOrCreate()?.Trigger(iceBreakHitStopDuration);
-                squashEffect?.PlaySquash();
+                squashEffect?.PlaySquash(breakDirection);
             }
 
             knockbackTimeRemaining = knockbackRecoveryTime;
@@ -302,22 +302,27 @@ namespace HeroFangame.Enemy
         /// velocity every step while Frozen, which would otherwise cancel
         /// an AddForce-based knockback before it ever produced visible
         /// movement) and at the instant of shattering free, so both
-        /// transitions read with the same physical punch.
+        /// transitions read with the same physical punch. Returns the
+        /// away-from-player direction that was applied (Vector2.zero if
+        /// nothing was applied), so callers can reuse it to orient other
+        /// feedback like the shatter squash.
         /// </summary>
-        private void ApplyKnockbackAwayFromPlayer(float distance)
+        private Vector2 ApplyKnockbackAwayFromPlayer(float distance)
         {
             if (player == null || distance <= 0f)
             {
-                return;
+                return Vector2.zero;
             }
 
             Vector2 away = (Vector2)transform.position - (Vector2)player.position;
             if (away.sqrMagnitude < 0.0001f)
             {
-                return;
+                return Vector2.zero;
             }
 
-            rb.position += away.normalized * distance;
+            Vector2 direction = away.normalized;
+            rb.position += direction * distance;
+            return direction;
         }
 
         private void Thaw(bool shattered)

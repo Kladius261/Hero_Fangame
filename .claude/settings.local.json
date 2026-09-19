@@ -136,7 +136,8 @@
       "Bash(\"/c/Program Files/Krita \\(x64\\)/bin/ffmpeg.exe\" -i \"/c/Users/gohun/AppData/Local/Temp/freeze_video3.mp4\")",
       "Bash(rm -rf /tmp/freeze_frames3)",
       "Bash(mkdir -p /tmp/freeze_frames3)",
-      "Bash(\"/c/Program Files/Krita \\(x64\\)/bin/ffmpeg.exe\" -i \"/c/Users/gohun/AppData/Local/Temp/freeze_video3.mp4\" -vf \"fps=8\" /c/Users/gohun/AppData/Local/Temp/freeze_frames3/frame_%03d.png)"
+      "Bash(\"/c/Program Files/Krita \\(x64\\)/bin/ffmpeg.exe\" -i \"/c/Users/gohun/AppData/Local/Temp/freeze_video3.mp4\" -vf \"fps=8\" /c/Users/gohun/AppData/Local/Temp/freeze_frames3/frame_%03d.png)",
+      "Bash(MSYS_NO_PATHCONV=1 unity command add_component --target \"/Main Camera\" --type \"UnityEngine.AudioListener\" --format json)"
     ]
   }
 }

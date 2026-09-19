@@ -48,6 +48,9 @@ namespace HeroFangame.Player
         [SerializeField] private HeatVisionBeamRenderer beamRenderer;
         [SerializeField] private HeatVisionImpactEffect impactEffect;
 
+        [Header("Audio")]
+        [SerializeField] private AudioSource beamAudioSource;
+
         [Header("Aim")]
         [SerializeField] private float aimSweepSpeedDegreesPerSecond = 180f;
 
@@ -191,7 +194,7 @@ namespace HeroFangame.Player
                 if (rb != null)
                 {
                     rb.AddForce(dir * knockbackForce, ForceMode2D.Impulse);
-                    hit.Collider.GetComponentInParent<HitSquashEffect>()?.PlaySquash();
+                    hit.Collider.GetComponentInParent<HitSquashEffect>()?.PlaySquash(dir);
                 }
             }
 
@@ -239,13 +242,17 @@ namespace HeroFangame.Player
                 if (rb != null)
                 {
                     rb.AddForce(dir * knockbackForce, ForceMode2D.Impulse);
-                    hit.Collider.GetComponentInParent<HitSquashEffect>()?.PlaySquash();
+                    hit.Collider.GetComponentInParent<HitSquashEffect>()?.PlaySquash(dir);
                 }
             }
         }
 
         private void ActivateBeamVisual(Vector2 origin, Vector2 dir, BeamHitResult hit, bool hitScreenEdge)
         {
+            if (!isBeamActive)
+            {
+                beamAudioSource?.Play();
+            }
             isBeamActive = true;
             controller.LockMovement(this);
             if (beamRenderer != null)
@@ -286,6 +293,7 @@ namespace HeroFangame.Player
             controller.UnlockMovement(this);
             beamRenderer?.SetActive(false);
             impactEffect?.StopContact();
+            beamAudioSource?.Stop();
             SetCameraShake(false);
         }
 

@@ -37,10 +37,16 @@ namespace HeroFangame.Enemy
         [SerializeField] private float iceShatterFadeOutDuration = 0.1f;
         [SerializeField] private float shatterFlashDuration = 0.06f;
 
+        [Header("Audio")]
+        [SerializeField] private AudioSource audioSource;
+        [SerializeField] private AudioClip freezeSound;
+        [SerializeField] private AudioClip[] iceBreakSounds;
+
         private Coroutine fadeRoutine;
         private WaitForSeconds shatterFlashWait;
         private bool isLocked;
         private bool isChilling;
+        private int lastIceBreakClipIndex = -1;
 
         private void Awake()
         {
@@ -75,6 +81,7 @@ namespace HeroFangame.Enemy
                 isChilling = false;
                 StopFadeRoutineIfRunning();
                 ambientFrostParticles?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                StopFreezeExposureSound();
                 if (iceOverlayRenderer != null)
                 {
                     iceOverlayRenderer.color = new Color(iceOverlayColor.r, iceOverlayColor.g, iceOverlayColor.b, 0f);
@@ -91,10 +98,42 @@ namespace HeroFangame.Enemy
             isChilling = true;
             StopFadeRoutineIfRunning();
             ambientFrostParticles?.Play();
+            PlayFreezeExposureSound();
             if (iceOverlayRenderer != null)
             {
                 iceOverlayRenderer.gameObject.SetActive(true);
                 iceOverlayRenderer.color = new Color(iceOverlayColor.r, iceOverlayColor.g, iceOverlayColor.b, iceOverlayColor.a);
+            }
+        }
+
+        /// <summary>
+        /// Starts the "freeze" sound the instant exposure begins (mirrors
+        /// the overlay/ambient-particle snap-on above), rather than at full
+        /// solid-freeze. Uses a regular Play() rather than PlayOneShot so
+        /// StopFreezeExposureSound() can cut it off early if exposure is
+        /// lost before the enemy finishes freezing.
+        /// </summary>
+        private void PlayFreezeExposureSound()
+        {
+            if (freezeSound == null || audioSource == null)
+            {
+                return;
+            }
+            audioSource.loop = false;
+            audioSource.clip = freezeSound;
+            audioSource.Play();
+        }
+
+        /// <summary>
+        /// Cuts the "freeze" sound short the moment exposure drops back to
+        /// zero (breath released or aimed elsewhere) instead of letting it
+        /// play out to completion.
+        /// </summary>
+        private void StopFreezeExposureSound()
+        {
+            if (audioSource != null && audioSource.isPlaying)
+            {
+                audioSource.Stop();
             }
         }
 
@@ -140,12 +179,40 @@ namespace HeroFangame.Enemy
 
             ambientFrostParticles?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             iceShatterParticles?.Play();
+            PlayRandomIceBreakSound();
 
             if (iceOverlayRenderer != null)
             {
                 StopFadeRoutineIfRunning();
                 iceOverlayRenderer.gameObject.SetActive(true);
                 fadeRoutine = StartCoroutine(ShatterFlashRoutine());
+            }
+        }
+
+        /// <summary>
+        /// Picks a random ice-break clip from the pool, avoiding an
+        /// immediate repeat of the last one played, mirroring
+        /// PunchHitSound's no-immediate-repeat convention.
+        /// </summary>
+        private void PlayRandomIceBreakSound()
+        {
+            if (iceBreakSounds == null || iceBreakSounds.Length == 0 || audioSource == null)
+            {
+                return;
+            }
+
+            int index;
+            do
+            {
+                index = Random.Range(0, iceBreakSounds.Length);
+            }
+            while (iceBreakSounds.Length > 1 && index == lastIceBreakClipIndex);
+            lastIceBreakClipIndex = index;
+
+            var clip = iceBreakSounds[index];
+            if (clip != null)
+            {
+                audioSource.PlayOneShot(clip);
             }
         }
 

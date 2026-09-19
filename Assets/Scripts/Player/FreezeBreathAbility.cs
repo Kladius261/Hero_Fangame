@@ -44,6 +44,9 @@ namespace HeroFangame.Player
         [SerializeField] private FreezeBreathConeEffect coneEffect;
         [SerializeField] private float breathShakeDuration = 0.08f;
 
+        [Header("Audio")]
+        [SerializeField] private AudioSource breathAudioSource;
+
         [Header("Aim")]
         [SerializeField] private float aimSweepSpeedDegreesPerSecond = 180f;
 
@@ -196,6 +199,10 @@ namespace HeroFangame.Player
                 freezable?.AddFreezeExposure(exposure, isNewActivation);
             }
 
+            if (!isConeActive)
+            {
+                breathAudioSource?.Play();
+            }
             isConeActive = true;
 
             // Visually clip the cone at the nearest hittable surface so the
@@ -237,6 +244,7 @@ namespace HeroFangame.Player
             isConeActive = false;
             coneEffect?.StopCone();
             coneEffect?.StopBoundaryContact();
+            breathAudioSource?.Stop();
         }
 
 #if UNITY_EDITOR
