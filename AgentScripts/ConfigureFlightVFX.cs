@@ -76,9 +76,9 @@ public static class ConfigureFlightVFX
         var main = ps.main;
         main.loop = true;
         main.duration = 2f;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.7f, 1.1f);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 0.95f);
         main.startSpeed = new ParticleSystem.MinMaxCurve(0.15f, 0.5f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.5f, 0.9f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.22f, 0.4f);
         main.startColor = new Color(0.75f, 0.95f, 1f, 0.85f);
         main.startRotation3D = false;
         main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
@@ -94,7 +94,7 @@ public static class ConfigureFlightVFX
         var shape = ps.shape;
         shape.enabled = true;
         shape.shapeType = ParticleSystemShapeType.Circle;
-        shape.radius = 0.55f;
+        shape.radius = 0.45f;
         shape.radiusThickness = 0f;
         shape.arc = 360f;
 
@@ -119,7 +119,7 @@ public static class ConfigureFlightVFX
         var g = new Gradient();
         g.SetKeys(
             new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
-            new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.25f), new GradientAlphaKey(1f, 0.7f), new GradientAlphaKey(0f, 1f) }
+            new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.12f), new GradientAlphaKey(1f, 0.75f), new GradientAlphaKey(0f, 1f) }
         );
         col.color = g;
 
@@ -147,7 +147,7 @@ public static class ConfigureFlightVFX
         main.duration = 0.7f;
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.55f, 0.55f);
         main.startSpeed = new ParticleSystem.MinMaxCurve(0f, 0f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.25f, 0.4f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.1f, 0.16f);
         main.startColor = new Color(0.85f, 0.98f, 1f, 0.9f);
         main.simulationSpace = ParticleSystemSimulationSpace.Local;
         main.maxParticles = 80;
@@ -159,7 +159,7 @@ public static class ConfigureFlightVFX
         // A ring "pulse" every 0.7s for as long as the system plays —
         // repeatInterval/cycleCount=0 means it auto-repeats without any
         // extra scripting on FlightAbility's side.
-        var burst = new ParticleSystem.Burst(0f, 32)
+        var burst = new ParticleSystem.Burst(0f, 46)
         {
             cycleCount = 0,
             repeatInterval = 0.7f,
@@ -187,7 +187,7 @@ public static class ConfigureFlightVFX
         // circle.
         var sol = ps.sizeOverLifetime;
         sol.enabled = true;
-        sol.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 1f, 1f, 2f));
+        sol.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 1f, 1f, 1.4f));
 
         EditorUtility.SetDirty(go);
         EditorUtility.SetDirty(ps);
@@ -405,7 +405,7 @@ public static class ConfigureFlightVFX
         ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         pr.sharedMaterial = mat;
         pr.renderMode = ParticleSystemRenderMode.Stretch;
-        pr.lengthScale = 1.5f;
+        pr.lengthScale = 2.2f;
         pr.velocityScale = 0.3f;
         pr.sortingLayerName = "Default";
         pr.sortingOrder = 21;
@@ -413,19 +413,19 @@ public static class ConfigureFlightVFX
         var main = ps.main;
         main.loop = false;
         main.duration = 0.45f;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.5f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(4f, 9f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.1f, 0.2f);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.55f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(6f, 13f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.35f);
         main.startColor = Color.white;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.maxParticles = 40;
+        main.maxParticles = 60;
         main.playOnAwake = false;
         main.gravityModifier = 0f;
 
         var emission = ps.emission;
         emission.enabled = true;
         emission.rateOverTime = 0f;
-        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 22) });
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 34) });
 
         // Full-sphere radial emission (no dominant axis) — the shape's
         // own outward velocity is what carries the "sparkle from center"
@@ -433,7 +433,7 @@ public static class ConfigureFlightVFX
         var shape = ps.shape;
         shape.enabled = true;
         shape.shapeType = ParticleSystemShapeType.Circle;
-        shape.radius = 0.12f;
+        shape.radius = 0.18f;
         shape.radiusThickness = 1f;
 
         var col = ps.colorOverLifetime;
