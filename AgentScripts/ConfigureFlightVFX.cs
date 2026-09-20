@@ -570,6 +570,13 @@ public static class ConfigureFlightVFX
 
     static void ConfigureLandingDescent(GameObject go, Material mat)
     {
+        // Landing's own origin sits at the player's center pivot, not the
+        // feet — the player's CircleCollider2D (radius 0.5, no offset) puts
+        // the actual bottom half a unit below that. Nudge this effect's
+        // origin down to match so the descending column terminates right at
+        // the player's feet instead of stopping at hip height.
+        go.transform.localPosition = new Vector3(0f, -0.5f, 0f);
+
         var ps = go.GetComponent<ParticleSystem>() ?? go.AddComponent<ParticleSystem>();
         var pr = go.GetComponent<ParticleSystemRenderer>() ?? go.AddComponent<ParticleSystemRenderer>();
         ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
