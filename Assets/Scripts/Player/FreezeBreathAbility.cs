@@ -46,6 +46,8 @@ namespace HeroFangame.Player
 
         [Header("Audio")]
         [SerializeField] private AudioSource breathAudioSource;
+        [SerializeField] private float pitchWobbleSpeed = 6f;
+        [SerializeField] private float pitchWobbleAmplitude = 0.1f;
 
         [Header("Aim")]
         [SerializeField] private float aimSweepSpeedDegreesPerSecond = 180f;
@@ -60,6 +62,7 @@ namespace HeroFangame.Player
         private bool wasHeld;
         private float tapPulseTimeRemaining;
         private bool isConeActive;
+        private AudioPitchWobble pitchWobble;
 
         private void Awake()
         {
@@ -72,10 +75,17 @@ namespace HeroFangame.Player
                 abilityLock = gameObject.AddComponent<AbilityLock>();
             }
             aimController = new AbilityAimController(aimSweepSpeedDegreesPerSecond);
+            pitchWobble = new AudioPitchWobble(pitchWobbleSpeed, pitchWobbleAmplitude);
         }
 
         private void Update()
         {
+            if (controller.IsFlightMode)
+            {
+                StopConeVisual();
+                return;
+            }
+
             bool rawHeld = input.FreezeBreathHeld;
             bool isHeld = abilityLock.CanActivate(this, rawHeld);
 
@@ -202,8 +212,10 @@ namespace HeroFangame.Player
             if (!isConeActive)
             {
                 breathAudioSource?.Play();
+                pitchWobble.Restart();
             }
             isConeActive = true;
+            pitchWobble.Apply(breathAudioSource, Time.deltaTime);
 
             // Visually clip the cone at the nearest hittable surface so the
             // mist wraps around the target instead of visibly passing

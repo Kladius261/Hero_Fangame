@@ -50,6 +50,8 @@ namespace HeroFangame.Player
 
         [Header("Audio")]
         [SerializeField] private AudioSource beamAudioSource;
+        [SerializeField] private float pitchWobbleSpeed = 6f;
+        [SerializeField] private float pitchWobbleAmplitude = 0.1f;
 
         [Header("Aim")]
         [SerializeField] private float aimSweepSpeedDegreesPerSecond = 180f;
@@ -68,6 +70,7 @@ namespace HeroFangame.Player
 
         private Collider2D currentContactTarget;
         private float contactKnockbackTimer;
+        private AudioPitchWobble pitchWobble;
 
         private void Awake()
         {
@@ -80,10 +83,17 @@ namespace HeroFangame.Player
                 abilityLock = gameObject.AddComponent<AbilityLock>();
             }
             aimController = new AbilityAimController(aimSweepSpeedDegreesPerSecond);
+            pitchWobble = new AudioPitchWobble(pitchWobbleSpeed, pitchWobbleAmplitude);
         }
 
         private void Update()
         {
+            if (controller.IsFlightMode)
+            {
+                StopBeamVisuals();
+                return;
+            }
+
             bool rawHeld = input.HeatVisionHeld;
             bool isHeld = abilityLock.CanActivate(this, rawHeld);
 
@@ -252,8 +262,10 @@ namespace HeroFangame.Player
             if (!isBeamActive)
             {
                 beamAudioSource?.Play();
+                pitchWobble.Restart();
             }
             isBeamActive = true;
+            pitchWobble.Apply(beamAudioSource, Time.deltaTime);
             controller.LockMovement(this);
             if (beamRenderer != null)
             {

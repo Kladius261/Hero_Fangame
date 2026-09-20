@@ -137,7 +137,14 @@
       "Bash(rm -rf /tmp/freeze_frames3)",
       "Bash(mkdir -p /tmp/freeze_frames3)",
       "Bash(\"/c/Program Files/Krita \\(x64\\)/bin/ffmpeg.exe\" -i \"/c/Users/gohun/AppData/Local/Temp/freeze_video3.mp4\" -vf \"fps=8\" /c/Users/gohun/AppData/Local/Temp/freeze_frames3/frame_%03d.png)",
-      "Bash(MSYS_NO_PATHCONV=1 unity command add_component --target \"/Main Camera\" --type \"UnityEngine.AudioListener\" --format json)"
+      "Bash(MSYS_NO_PATHCONV=1 unity command add_component --target \"/Main Camera\" --type \"UnityEngine.AudioListener\" --format json)",
+      "Bash(python3 -c \"import uuid; print\\(uuid.uuid4\\(\\).hex\\); print\\(uuid.uuid4\\(\\).hex\\); print\\(uuid.uuid4\\(\\).hex\\)\")",
+      "Bash(powershell -NoProfile -Command \"[guid]::NewGuid\\(\\).ToString\\('N'\\); [guid]::NewGuid\\(\\).ToString\\('N'\\); [guid]::NewGuid\\(\\).ToString\\('N'\\)\")",
+      "Bash(powershell -NoProfile -Command '$r = New-Object System.Random; for \\($i=0; $i -lt 6; $i++\\) { [math]::Abs\\($r.NextInt64\\(\\)\\) }')",
+      "Bash(powershell -NoProfile -Command '$r = New-Object System.Random; for \\($i=0; $i -lt 6; $i++\\) { $r.Next\\(100000000, 999999999\\).ToString\\(\\) + $r.Next\\(100000000, 999999999\\).ToString\\(\\) }')",
+      "mcp__unity-editor-mcp__get_material_properties",
+      "mcp__unity-editor-mcp__run_script",
+      "mcp__unity-editor-mcp__save_all"
     ]
   }
 }

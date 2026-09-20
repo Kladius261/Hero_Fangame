@@ -74,6 +74,11 @@ namespace HeroFangame.Player
 
         private void HandlePunch()
         {
+            if (controller.IsFlightMode)
+            {
+                return;
+            }
+
             int damage = comboDamage[Mathf.Clamp(comboStep, 0, comboDamage.Length - 1)];
 
             Vector2 origin = (Vector2)transform.position + controller.Facing * hitboxDistance;

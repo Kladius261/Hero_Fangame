@@ -117,6 +117,53 @@ namespace HeroFangame.Combat
             return colliderBuffer;
         }
 
+        /// <summary>
+        /// Like OverlapCircleAndDamage, but knocks each hit away from
+        /// <paramref name="center"/> individually instead of pushing every
+        /// hit in one shared direction — used by Flight's liftoff AOE, where
+        /// surrounding enemies should scatter outward rather than all fly
+        /// off the same way.
+        /// </summary>
+        public static Collider2D[] OverlapCircleAndDamageRadial(
+            Vector2 center,
+            float radius,
+            LayerMask mask,
+            int damage,
+            GameObject source,
+            float knockbackForce,
+            out int hitCount,
+            System.Action<Collider2D, Vector2> onHit = null)
+        {
+            hitCount = Physics2D.OverlapCircleNonAlloc(center, radius, colliderBuffer, mask);
+            for (int i = 0; i < hitCount; i++)
+            {
+                var hit = colliderBuffer[i];
+                if (hit == null)
+                {
+                    continue;
+                }
+                var damageable = hit.GetComponentInParent<Damageable>();
+                if (damageable == null)
+                {
+                    continue;
+                }
+
+                Vector2 direction = ((Vector2)hit.bounds.center - center);
+                direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
+
+                damageable.TakeDamage(damage, new DamageInfo(source, direction, knockbackForce));
+
+                var rb = hit.attachedRigidbody;
+                if (rb != null && knockbackForce > 0f)
+                {
+                    rb.AddForce(direction * knockbackForce, ForceMode2D.Impulse);
+                }
+
+                onHit?.Invoke(hit, direction);
+            }
+            return colliderBuffer;
+        }
+
         private static void ApplyDamage(
             Collider2D[] hits,
             int hitCount,

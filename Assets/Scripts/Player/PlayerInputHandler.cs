@@ -25,10 +25,10 @@ namespace HeroFangame.Player
         public Vector2 MoveInput { get; private set; }
         public bool HeatVisionHeld { get; private set; }
         public bool FreezeBreathHeld { get; private set; }
+        public bool FlightHeld { get; private set; }
 
         public event System.Action OnPunchA;
         public event System.Action OnPunchS;
-        public event System.Action OnFlight;
 
         private void Awake()
         {
@@ -54,14 +54,12 @@ namespace HeroFangame.Player
 
             if (punchAAction != null) punchAAction.performed += HandlePunchA;
             if (punchSAction != null) punchSAction.performed += HandlePunchS;
-            if (flightAction != null) flightAction.performed += HandleFlight;
         }
 
         private void OnDisable()
         {
             if (punchAAction != null) punchAAction.performed -= HandlePunchA;
             if (punchSAction != null) punchSAction.performed -= HandlePunchS;
-            if (flightAction != null) flightAction.performed -= HandleFlight;
 
             map?.Disable();
         }
@@ -71,10 +69,10 @@ namespace HeroFangame.Player
             MoveInput = moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
             HeatVisionHeld = heatVisionAction != null && heatVisionAction.IsPressed();
             FreezeBreathHeld = freezeBreathAction != null && freezeBreathAction.IsPressed();
+            FlightHeld = flightAction != null && flightAction.IsPressed();
         }
 
         private void HandlePunchA(InputAction.CallbackContext ctx) => OnPunchA?.Invoke();
         private void HandlePunchS(InputAction.CallbackContext ctx) => OnPunchS?.Invoke();
-        private void HandleFlight(InputAction.CallbackContext ctx) => OnFlight?.Invoke();
     }
 }

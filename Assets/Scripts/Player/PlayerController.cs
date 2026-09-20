@@ -4,9 +4,11 @@ using UnityEngine;
 namespace HeroFangame.Player
 {
     /// <summary>
-    /// Free 2D movement (no gravity), persistent facing direction, and a
-    /// flight-dash burst that replaces a traditional dash. Movement and
-    /// flight never consume Power.
+    /// Free 2D movement (no gravity) and persistent facing direction. Also
+    /// exposes a thin "flight mode" API (movement speed multiplier) and a
+    /// velocity override hook driven entirely by FlightAbility — this class
+    /// stays a dumb movement executor and owns none of the flight/charge
+    /// state itself.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(PlayerInputHandler))]
@@ -14,11 +16,7 @@ namespace HeroFangame.Player
     {
         [Header("Movement")]
         [SerializeField] private float moveSpeed = 6f;
-
-        [Header("Flight Dash")]
-        [SerializeField] private float flightSpeed = 20f;
-        [SerializeField] private float flightDuration = 0.15f;
-        [SerializeField] private float flightCooldown = 0.5f;
+        [SerializeField] private float flightMoveSpeedMultiplier = 2f;
 
         private Rigidbody2D rb;
         private PlayerInputHandler input;
@@ -31,8 +29,8 @@ namespace HeroFangame.Player
         private readonly HashSet<object> movementLockers = new HashSet<object>();
 
         public Vector2 Facing { get; private set; } = Vector2.right;
-        public bool IsFlying { get; private set; }
         public bool IsMovementLocked => movementLockers.Count > 0;
+        public bool IsFlightMode { get; private set; }
 
         public void LockMovement(object requester)
         {
@@ -44,25 +42,28 @@ namespace HeroFangame.Player
             movementLockers.Remove(requester);
         }
 
-        private float flightTimeRemaining;
-        private float flightCooldownRemaining;
-        private Vector2 flightDirection;
+        public void SetFlightMode(bool active)
+        {
+            IsFlightMode = active;
+        }
+
+        private Vector2? velocityOverride;
+
+        /// <summary>
+        /// Drives movement directly (e.g. FlightAbility's Charge), bypassing
+        /// normal input-driven movement entirely. Pass null to release the
+        /// override and return to normal movement resolution.
+        /// </summary>
+        public void SetVelocityOverride(Vector2? velocity)
+        {
+            velocityOverride = velocity;
+        }
 
         private void Awake()
         {
             rb = GetComponent<Rigidbody2D>();
             rb.gravityScale = 0f;
             input = GetComponent<PlayerInputHandler>();
-        }
-
-        private void OnEnable()
-        {
-            input.OnFlight += HandleFlightInput;
-        }
-
-        private void OnDisable()
-        {
-            input.OnFlight -= HandleFlightInput;
         }
 
         private void Update()
@@ -72,52 +73,24 @@ namespace HeroFangame.Player
             {
                 Facing = move.normalized;
             }
-
-            if (flightCooldownRemaining > 0f)
-            {
-                flightCooldownRemaining -= Time.deltaTime;
-            }
-
-            if (IsFlying)
-            {
-                flightTimeRemaining -= Time.deltaTime;
-                if (flightTimeRemaining <= 0f)
-                {
-                    IsFlying = false;
-                }
-            }
         }
 
         private void FixedUpdate()
         {
+            if (velocityOverride.HasValue)
+            {
+                rb.linearVelocity = velocityOverride.Value;
+                return;
+            }
+
             if (IsMovementLocked)
             {
                 rb.linearVelocity = Vector2.zero;
                 return;
             }
 
-            if (IsFlying)
-            {
-                rb.linearVelocity = flightDirection * flightSpeed;
-            }
-            else
-            {
-                rb.linearVelocity = input.MoveInput.normalized * moveSpeed;
-            }
-        }
-
-        private void HandleFlightInput()
-        {
-            if (IsFlying || flightCooldownRemaining > 0f)
-            {
-                return;
-            }
-
-            Vector2 dir = input.MoveInput.sqrMagnitude > 0.0001f ? input.MoveInput.normalized : Facing;
-            flightDirection = dir;
-            IsFlying = true;
-            flightTimeRemaining = flightDuration;
-            flightCooldownRemaining = flightCooldown;
+            float speed = moveSpeed * (IsFlightMode ? flightMoveSpeedMultiplier : 1f);
+            rb.linearVelocity = input.MoveInput.normalized * speed;
         }
     }
 }
