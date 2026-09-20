@@ -120,9 +120,13 @@ namespace HeroFangame.Combat
         /// <summary>
         /// Like OverlapCircleAndDamage, but knocks each hit away from
         /// <paramref name="center"/> individually instead of pushing every
-        /// hit in one shared direction — used by Flight's liftoff AOE, where
-        /// surrounding enemies should scatter outward rather than all fly
-        /// off the same way.
+        /// hit in one shared direction — used by Flight's liftoff/landing
+        /// AOE, where surrounding enemies should scatter outward rather than
+        /// all fly off the same way. <paramref name="exclude"/> optionally
+        /// skips one collider entirely (damage, knockback, and callback) —
+        /// used by Charge's crash splash so the primary target it already
+        /// full-damaged via its own direct hit isn't also double-dipped by
+        /// the secondary AOE pass.
         /// </summary>
         public static Collider2D[] OverlapCircleAndDamageRadial(
             Vector2 center,
@@ -132,13 +136,14 @@ namespace HeroFangame.Combat
             GameObject source,
             float knockbackForce,
             out int hitCount,
-            System.Action<Collider2D, Vector2> onHit = null)
+            System.Action<Collider2D, Vector2> onHit = null,
+            Collider2D exclude = null)
         {
             hitCount = Physics2D.OverlapCircleNonAlloc(center, radius, colliderBuffer, mask);
             for (int i = 0; i < hitCount; i++)
             {
                 var hit = colliderBuffer[i];
-                if (hit == null)
+                if (hit == null || hit == exclude)
                 {
                     continue;
                 }

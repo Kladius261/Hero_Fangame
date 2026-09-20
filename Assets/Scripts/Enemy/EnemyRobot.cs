@@ -78,6 +78,13 @@ namespace HeroFangame.Enemy
         {
             rb = GetComponent<Rigidbody2D>();
             rb.gravityScale = 0f;
+            // Flight's liftoff/Charge knockback (and simply being rammed at
+            // Flight's 2x move speed) can push this rigidbody hard enough
+            // against the arena's thin 1-unit-thick walls to tunnel straight
+            // through them in a single physics step under Discrete detection
+            // — the same tunneling risk the player's own rigidbody already
+            // guards against while flying (see FlightAbility.EnterFlight).
+            rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             damageable = GetComponent<Damageable>();
             squashEffect = GetComponent<HitSquashEffect>();

@@ -45,12 +45,18 @@ namespace HeroFangame.Player
         [Tooltip("Small continuous up/down drift applied while hovering, purely to sell the sense of levitation.")]
         [SerializeField] private float hoverBobAmplitude = 0.12f;
         [SerializeField] private float hoverBobFrequency = 1.4f;
+        [Tooltip("Ghost trail spawn interval while hovering/flying normally — deliberately denser (smaller) than Charge's own interval (set on GhostTrailEffect), so the sustained flight trail reads as fuller/richer while Charge's brief dash trail stays comparatively sparse.")]
+        [SerializeField] private float flightHoverGhostTrailInterval = 0.03f;
 
         [Header("Charge")]
         [SerializeField] private float doubleTapWindow = 0.3f;
         [SerializeField] private float chargeSpeed = 30f;
         [SerializeField] private int chargeDamage = 3;
         [SerializeField] private float chargeKnockbackForce = 14f;
+        [Tooltip("Secondary splash damage/knockback around the crash point, hitting anything near the primary target/wall a Charge slams into (which itself still takes the full chargeDamage/chargeKnockbackForce above via its own direct hit).")]
+        [SerializeField] private float chargeAoeRadius = 2.5f;
+        [SerializeField] private int chargeAoeDamage = 1;
+        [SerializeField] private float chargeAoeKnockbackForce = 8f;
         [SerializeField] private float chargeCrashShakeDuration = 0.15f;
         [SerializeField] private float chargeCrashShakeAmplitude = 1.75f;
         [SerializeField] private float chargeCrashHitStopDuration = 0.08f;
@@ -207,6 +213,7 @@ namespace HeroFangame.Player
             flightPropulsionVFX?.Play();
             flightAuraVFX?.Play();
             flightAuraRingsVFX?.Play();
+            ghostTrail?.StartTrail(flightHoverGhostTrailInterval);
 
             AttackUtility.OverlapCircleAndDamageRadial(
                 transform.position,
@@ -237,6 +244,7 @@ namespace HeroFangame.Player
 
             flightAuraVFX?.Stop();
             flightAuraRingsVFX?.Stop();
+            ghostTrail?.StopTrail();
             flightLandingVFX?.Play();
             flightLandingDebrisVFX?.Play();
             CameraShake.GetOrCreate()?.Pulse(landingShakeDuration, landingShakeAmplitude);
@@ -263,7 +271,11 @@ namespace HeroFangame.Player
             chargeDirection = direction;
             controller.SetVelocityOverride(direction * chargeSpeed);
             CameraShake.GetOrCreate()?.SetShaking(true);
-            ghostTrail?.StartTrail();
+            // Force-restart even though the hover trail is already running:
+            // switches it from the denser hover interval to Charge's own
+            // (sparser) default interval, so the sudden burst of speed reads
+            // distinctly from the sustained hover trail.
+            ghostTrail?.StartTrail(restart: true);
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
@@ -280,11 +292,31 @@ namespace HeroFangame.Player
             }
             else
             {
-                HandleChargeHitWall();
+                HandleChargeHitWall(collision);
             }
 
             PlayChargeDebris(collision.GetContact(0).point);
             EndCharge();
+        }
+
+        /// <summary>
+        /// Secondary splash around the crash point, hitting anything nearby
+        /// besides whatever the Charge directly collided with (that primary
+        /// target/wall already got its own full-strength hit, so it's
+        /// excluded here to avoid double-dipping it).
+        /// </summary>
+        private void PlayChargeAoe(Vector2 center, Collider2D primaryCollider)
+        {
+            AttackUtility.OverlapCircleAndDamageRadial(
+                center,
+                chargeAoeRadius,
+                enemyLayer,
+                chargeAoeDamage,
+                gameObject,
+                chargeAoeKnockbackForce,
+                out _,
+                (hit, direction) => hit.GetComponentInParent<HitSquashEffect>()?.PlaySquash(direction),
+                primaryCollider);
         }
 
         private void PlayChargeDebris(Vector2 point)
@@ -319,19 +351,25 @@ namespace HeroFangame.Player
 
             CameraShake.GetOrCreate()?.Pulse(chargeCrashShakeDuration, chargeCrashShakeAmplitude);
             HitStop.GetOrCreate()?.Trigger(chargeCrashHitStopDuration);
+
+            PlayChargeAoe(collision.GetContact(0).point, collision.collider);
         }
 
-        private void HandleChargeHitWall()
+        private void HandleChargeHitWall(Collision2D collision)
         {
             playerFlash?.Flash(Color.white, playerFlashDuration);
             CameraShake.GetOrCreate()?.Pulse(chargeCrashShakeDuration, chargeCrashShakeAmplitude);
             HitStop.GetOrCreate()?.Trigger(chargeCrashHitStopDuration);
+
+            PlayChargeAoe(collision.GetContact(0).point, collision.collider);
         }
 
         private void EndCharge()
         {
             CameraShake.GetOrCreate()?.SetShaking(false);
-            ghostTrail?.StopTrail();
+            // Back to Flying (not Grounded) — resume the denser hover trail
+            // rather than stopping it outright.
+            ghostTrail?.StartTrail(flightHoverGhostTrailInterval, restart: true);
             controller.SetVelocityOverride(null);
             chargeCooldownUntil = Time.unscaledTime + chargeCooldown;
 

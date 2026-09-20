@@ -332,6 +332,13 @@ public static class ConfigureFlightVFX
 
     static void ConfigureLandingDebris(GameObject go, Material mat)
     {
+        // Emit from the floor at the player's feet, not the body's local
+        // origin (roughly chest/center height) — an impact landing should
+        // read as debris kicked up from the ground, not sparking from the
+        // torso. -0.5 matches the sprite's bottom edge (see SpriteRenderer
+        // bounds vs. player position).
+        go.transform.localPosition = new Vector3(0f, -0.5f, 0f);
+
         var ps = go.GetComponent<ParticleSystem>();
         var pr = go.GetComponent<ParticleSystemRenderer>() ?? go.AddComponent<ParticleSystemRenderer>();
         ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -362,17 +369,24 @@ public static class ConfigureFlightVFX
         emission.rateOverTime = 0f;
         emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 20) });
 
+        // Arc=180 (with default rotation) restricts the circle to its
+        // upper half, so every chip's inherent radial direction already
+        // points up-and-outward from the floor point instead of a full
+        // 360-degree burst that would send half the chips down into the
+        // ground.
         var shape = ps.shape;
         shape.enabled = true;
         shape.shapeType = ParticleSystemShapeType.Circle;
         shape.radius = 0.12f;
         shape.radiusThickness = 1f;
+        shape.arc = 180f;
+        shape.rotation = Vector3.zero;
 
         var vol = ps.velocityOverLifetime;
         vol.enabled = true;
         vol.space = ParticleSystemSimulationSpace.World;
         vol.x = new ParticleSystem.MinMaxCurve(0f, 0f);
-        vol.y = new ParticleSystem.MinMaxCurve(3f, 6f);
+        vol.y = new ParticleSystem.MinMaxCurve(1f, 3f);
         vol.z = new ParticleSystem.MinMaxCurve(0f, 0f);
 
         var col = ps.colorOverLifetime;
