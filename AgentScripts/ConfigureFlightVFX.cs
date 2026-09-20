@@ -54,9 +54,8 @@ public static class ConfigureFlightVFX
 
         ConfigureAura(GameObject.Find("/Player/Aura"), auraMat);
         ConfigureAuraRings(GetOrCreateChild(player, "AuraRings"), auraRingsMat);
-        ConfigurePropulsion(GameObject.Find("/Player/Propulsion"), propMat);
-        ConfigureLanding(GameObject.Find("/Player/Landing"), landMat);
-        ConfigureLandingDebris(GetOrCreateChild(player, "LandingDebris"), crashMat);
+        ConfigurePropulsion(GameObject.Find("/Player/Propulsion"), propMat, crashMat);
+        ConfigureLanding(GameObject.Find("/Player/Landing"), landMat, crashMat, propMat);
         ConfigureCrash(GameObject.Find("/Player/Crash"), crashMat);
         ConfigureChargeDebris(GetOrCreateChild(player, "ChargeDebris"), crashMat);
 
@@ -194,7 +193,7 @@ public static class ConfigureFlightVFX
         EditorUtility.SetDirty(pr);
     }
 
-    static void ConfigurePropulsion(GameObject go, Material mat)
+    static void ConfigurePropulsion(GameObject go, Material mat, Material igniteMat)
     {
         var ps = go.GetComponent<ParticleSystem>();
         var pr = go.GetComponent<ParticleSystemRenderer>();
@@ -206,14 +205,24 @@ public static class ConfigureFlightVFX
         pr.sortingLayerName = "Default";
         pr.sortingOrder = 6;
 
+        // Brace/Ignition beat: the main column and its air ring both wait a
+        // beat behind a bright IgnitionGlow flash (configured below, which
+        // itself has no delay) so a single flightPropulsionVFX.Play() call
+        // reads as the reference's Brace->Ignition->Lift-off sequence
+        // instead of every layer popping at once.
+        const float ignitionDelay = 0.12f;
+
         var main = ps.main;
         main.loop = false;
         main.duration = 0.5f;
+        main.startDelay = new ParticleSystem.MinMaxCurve(ignitionDelay);
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.55f);
-        // Small initial speed only — the real "upward burst" motion comes
-        // from velocityOverLifetime below so every particle commits hard to
-        // a vertical column instead of a directionless sphere burst.
-        main.startSpeed = new ParticleSystem.MinMaxCurve(0.5f, 2.5f);
+        // No initial speed at all — with Stretch rendering, any startSpeed
+        // here reads as sharp linear sparkles scattering out from the spawn
+        // disc before the vertical push takes over. Zeroing it out leaves
+        // velocityOverLifetime below as the only motion, so every particle
+        // commits straight into the column from the instant it spawns.
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0f, 0f);
         main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.35f);
         main.startColor = new Color(0.8f, 0.94f, 1f, 1f);
         main.simulationSpace = ParticleSystemSimulationSpace.Local;
@@ -231,10 +240,15 @@ public static class ConfigureFlightVFX
         shape.radius = 0.35f;
         shape.radiusThickness = 1f;
 
+        // Strictly vertical — no horizontal bias at all, matching the
+        // reference's "no forward movement" callout. With startSpeed now
+        // zeroed out above, this is the only motion any particle has, so
+        // the group reads as a clean upward column rather than a
+        // directionless burst.
         var vol = ps.velocityOverLifetime;
         vol.enabled = true;
         vol.space = ParticleSystemSimulationSpace.Local;
-        vol.x = new ParticleSystem.MinMaxCurve(-2f, 2f);
+        vol.x = new ParticleSystem.MinMaxCurve(0f, 0f);
         vol.y = new ParticleSystem.MinMaxCurve(8f, 14f);
         vol.z = new ParticleSystem.MinMaxCurve(0f, 0f);
 
@@ -254,9 +268,135 @@ public static class ConfigureFlightVFX
         EditorUtility.SetDirty(go);
         EditorUtility.SetDirty(ps);
         EditorUtility.SetDirty(pr);
+
+        // One-shot air-pressure ring at the base of the plume, per the
+        // reference's "Air Ring" close-up — distinct from AuraRings'
+        // separate continuous hover loop, this fires once alongside the
+        // liftoff burst itself (same ignitionDelay as the column above, so
+        // both read as the single "Lift-off" beat).
+        ConfigurePropulsionRing(GetOrCreateChild(go, "PropulsionRing"), mat, ignitionDelay);
+
+        // Bright, stationary charge-up flash at the feet, per the
+        // reference's "Brace" -> "Ignition" poses — fires with no delay so
+        // it reads first, then the column/ring above launch once it peaks.
+        // Reuses the brighter crash/flash material (also used by
+        // LandingFlash) rather than the cooler propulsion material, so the
+        // "ignition spark" visually matches the project's other impact
+        // flashes instead of just being a dimmer copy of the plume.
+        ConfigureIgnitionGlow(GetOrCreateChild(go, "IgnitionGlow"), igniteMat);
     }
 
-    static void ConfigureLanding(GameObject go, Material mat)
+    static void ConfigureIgnitionGlow(GameObject go, Material mat)
+    {
+        var ps = go.GetComponent<ParticleSystem>() ?? go.AddComponent<ParticleSystem>();
+        var pr = go.GetComponent<ParticleSystemRenderer>() ?? go.AddComponent<ParticleSystemRenderer>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        pr.sharedMaterial = mat;
+        pr.renderMode = ParticleSystemRenderMode.Billboard;
+        pr.sortingLayerName = "Default";
+        pr.sortingOrder = 8;
+
+        var main = ps.main;
+        main.loop = false;
+        main.duration = 0.25f;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.14f, 0.2f);
+        // No travel at all — a charging core that sits still and grows
+        // in place (via sizeOverLifetime below) reads as "gathering energy"
+        // rather than another outward burst, keeping it distinct from the
+        // column/ring that follow it.
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0f, 0f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.5f, 0.7f);
+        main.startColor = Color.white;
+        main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        main.maxParticles = 6;
+        main.playOnAwake = false;
+
+        var emission = ps.emission;
+        emission.enabled = true;
+        emission.rateOverTime = 0f;
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 3) });
+
+        // No shape module — spawns exactly at the feet like LandingFlash,
+        // so it reads as one focused charging point, not a spread cluster.
+        var shape = ps.shape;
+        shape.enabled = false;
+
+        var col = ps.colorOverLifetime;
+        col.enabled = true;
+        var g = new Gradient();
+        g.SetKeys(
+            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+            new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.55f), new GradientAlphaKey(0f, 1f) }
+        );
+        col.color = g;
+
+        // Ramps up from nothing to a tight bright core right as the column
+        // and ring take over — a visible "charge" instead of an instant pop.
+        var sol = ps.sizeOverLifetime;
+        sol.enabled = true;
+        sol.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 0.25f, 1f, 1.2f));
+
+        EditorUtility.SetDirty(go);
+        EditorUtility.SetDirty(ps);
+        EditorUtility.SetDirty(pr);
+    }
+
+    static void ConfigurePropulsionRing(GameObject go, Material mat, float startDelay)
+    {
+        var ps = go.GetComponent<ParticleSystem>() ?? go.AddComponent<ParticleSystem>();
+        var pr = go.GetComponent<ParticleSystemRenderer>() ?? go.AddComponent<ParticleSystemRenderer>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        pr.sharedMaterial = mat;
+        pr.renderMode = ParticleSystemRenderMode.Billboard;
+        pr.sortingLayerName = "Default";
+        pr.sortingOrder = 7;
+
+        var main = ps.main;
+        main.loop = false;
+        main.duration = 0.4f;
+        main.startDelay = new ParticleSystem.MinMaxCurve(startDelay);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.35f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0f, 0f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.3f, 0.45f);
+        main.startColor = new Color(0.85f, 0.98f, 1f, 0.95f);
+        main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        main.maxParticles = 48;
+        main.playOnAwake = false;
+
+        var emission = ps.emission;
+        emission.enabled = true;
+        emission.rateOverTime = 0f;
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 40) });
+
+        // A single, tight ring (not a disc) so the burst reads as one
+        // expanding pressure-wave, matching AuraRings' technique but as a
+        // single non-looping pulse instead of a repeating cycle.
+        var shape = ps.shape;
+        shape.enabled = true;
+        shape.shapeType = ParticleSystemShapeType.Circle;
+        shape.radius = 0.6f;
+        shape.radiusThickness = 0f;
+        shape.arc = 360f;
+
+        var col = ps.colorOverLifetime;
+        col.enabled = true;
+        var g = new Gradient();
+        g.SetKeys(
+            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+            new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) }
+        );
+        col.color = g;
+
+        var sol = ps.sizeOverLifetime;
+        sol.enabled = true;
+        sol.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 1f, 1f, 2.2f));
+
+        EditorUtility.SetDirty(go);
+        EditorUtility.SetDirty(ps);
+        EditorUtility.SetDirty(pr);
+    }
+
+    static void ConfigureLanding(GameObject go, Material mat, Material flashMat, Material descentMat)
     {
         // Reworked from a scattering dust puff into a downward shockwave
         // impact: particles are born clustered near the player's feet and
@@ -328,79 +468,222 @@ public static class ConfigureFlightVFX
         EditorUtility.SetDirty(go);
         EditorUtility.SetDirty(ps);
         EditorUtility.SetDirty(pr);
+
+        // Bright starburst core layered on top of the ring, per the
+        // reference's distinct "Landing Flash" close-up — reuses the
+        // Crash impact-flash material so the palette/intensity matches
+        // the project's other established impact flash.
+        ConfigureLandingFlash(GetOrCreateChild(go, "LandingFlash"), flashMat);
+
+        // Soft billowing dust that lags a beat behind the sharp ring/flash
+        // and lingers into "Settle/Recover", per the reference's "Dust
+        // Cloud" close-up — distinct from LandingDebris' sharp Stretch-
+        // rendered rock chips below (this is the soft haze around them,
+        // not more debris).
+        ConfigureLandingDust(GetOrCreateChild(go, "LandingDust"), mat);
+
+        // Mirror of the Propulsion column: same Stretch column, same shape,
+        // same speed/size/color curves, just launched from above and driven
+        // downward into the impact point instead of upward off it — reads
+        // as the lift energy collapsing back down at the moment of landing.
+        ConfigureLandingDescent(GetOrCreateChild(go, "LandingDescent"), descentMat);
     }
 
-    static void ConfigureLandingDebris(GameObject go, Material mat)
+    static void ConfigureLandingDust(GameObject go, Material mat)
     {
-        // Emit from the floor at the player's feet, not the body's local
-        // origin (roughly chest/center height) — an impact landing should
-        // read as debris kicked up from the ground, not sparking from the
-        // torso. -0.5 matches the sprite's bottom edge (see SpriteRenderer
-        // bounds vs. player position).
-        go.transform.localPosition = new Vector3(0f, -0.5f, 0f);
+        var ps = go.GetComponent<ParticleSystem>() ?? go.AddComponent<ParticleSystem>();
+        var pr = go.GetComponent<ParticleSystemRenderer>() ?? go.AddComponent<ParticleSystemRenderer>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        pr.sharedMaterial = mat;
+        pr.renderMode = ParticleSystemRenderMode.Billboard;
+        pr.sortingLayerName = "Default";
+        // Behind the shockwave ring (order 4) and flash (order 5) — the
+        // sharp impact reads first/on top, with the dust settling in
+        // around/behind it rather than competing with it.
+        pr.sortingOrder = 3;
 
-        var ps = go.GetComponent<ParticleSystem>();
+        var main = ps.main;
+        main.loop = false;
+        main.duration = 0.9f;
+        // Billows up a beat after the ring/flash pop, rather than
+        // simultaneously with them.
+        main.startDelay = new ParticleSystem.MinMaxCurve(0.05f, 0.1f);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 0.8f);
+        // Slow drifting outward — unlike the ring's fast single-frame
+        // wavefront, dust should still visibly be spreading as it fades.
+        main.startSpeed = new ParticleSystem.MinMaxCurve(1f, 2.5f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.1f);
+        // Softer/more translucent than the bright ring/flash — reads as
+        // settling haze, not another flash of light.
+        main.startColor = new Color(0.85f, 0.92f, 1f, 0.5f);
+        main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        main.maxParticles = 24;
+        main.playOnAwake = false;
+
+        var emission = ps.emission;
+        emission.enabled = true;
+        emission.rateOverTime = 0f;
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 14) });
+
+        // Filled disc (not a thin ring) at the feet — a soft billowing puff
+        // rather than the shockwave ring's sharp single-line wavefront.
+        var shape = ps.shape;
+        shape.enabled = true;
+        shape.shapeType = ParticleSystemShapeType.Circle;
+        shape.radius = 0.35f;
+        shape.radiusThickness = 1f;
+        shape.arc = 360f;
+
+        // Slight upward drift as it billows — sells dust kicked up and
+        // hanging in the air rather than skimming flat along the ground
+        // like the shockwave ring.
+        var vol = ps.velocityOverLifetime;
+        vol.enabled = true;
+        vol.space = ParticleSystemSimulationSpace.Local;
+        // x/z must be explicitly set to the same TwoConstants mode as y —
+        // leaving them at their default Constant mode is what threw
+        // "Particle Velocity curves must all be in the same mode" at runtime.
+        vol.x = new ParticleSystem.MinMaxCurve(0f, 0f);
+        vol.y = new ParticleSystem.MinMaxCurve(0.4f, 0.9f);
+        vol.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+
+        var col = ps.colorOverLifetime;
+        col.enabled = true;
+        var g6 = new Gradient();
+        g6.SetKeys(
+            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+            new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.25f), new GradientAlphaKey(0f, 1f) }
+        );
+        col.color = g6;
+
+        // Grows steadily throughout its life (unlike the ring's quick
+        // pulse-then-collapse) — a slow billow that keeps expanding as it
+        // fades, matching "Settle/Recover"'s lingering haze.
+        var sol = ps.sizeOverLifetime;
+        sol.enabled = true;
+        sol.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.7f, 1f, 1.6f));
+
+        EditorUtility.SetDirty(go);
+        EditorUtility.SetDirty(ps);
+        EditorUtility.SetDirty(pr);
+    }
+
+    static void ConfigureLandingDescent(GameObject go, Material mat)
+    {
+        var ps = go.GetComponent<ParticleSystem>() ?? go.AddComponent<ParticleSystem>();
         var pr = go.GetComponent<ParticleSystemRenderer>() ?? go.AddComponent<ParticleSystemRenderer>();
         ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         pr.sharedMaterial = mat;
         pr.renderMode = ParticleSystemRenderMode.Stretch;
-        pr.lengthScale = 1.5f;
-        pr.velocityScale = 0.3f;
+        pr.lengthScale = 7f;
+        pr.velocityScale = 0.5f;
+        pr.sortingLayerName = "Default";
+        pr.sortingOrder = 6;
+
+        var main = ps.main;
+        main.loop = false;
+        main.duration = 0.5f;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.55f);
+        // Same zeroed startSpeed as the Propulsion column — velocityOverLifetime
+        // below is the only motion, so the column reads as one clean streak
+        // rather than a scatter.
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0f, 0f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.35f);
+        main.startColor = new Color(0.8f, 0.94f, 1f, 1f);
+        main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        main.maxParticles = 140;
+        main.playOnAwake = false;
+
+        var emission = ps.emission;
+        emission.enabled = true;
+        emission.rateOverTime = 0f;
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 70) });
+
+        // Same filled-disc shape as the Propulsion column, but offset up
+        // above the player so particles have room to fall and converge on
+        // the landing point instead of spawning already at the ground.
+        var shape = ps.shape;
+        shape.enabled = true;
+        shape.shapeType = ParticleSystemShapeType.Circle;
+        shape.radius = 0.35f;
+        shape.radiusThickness = 1f;
+        shape.position = new Vector3(0f, 2.2f, 0f);
+
+        // Straight down, no horizontal bias — the exact mirror of the
+        // Propulsion column's straight-up velocityOverLifetime, just negated.
+        var vol = ps.velocityOverLifetime;
+        vol.enabled = true;
+        vol.space = ParticleSystemSimulationSpace.Local;
+        vol.x = new ParticleSystem.MinMaxCurve(0f, 0f);
+        vol.y = new ParticleSystem.MinMaxCurve(-14f, -8f);
+        vol.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+
+        var col = ps.colorOverLifetime;
+        col.enabled = true;
+        var g = new Gradient();
+        g.SetKeys(
+            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(0.6f, 0.85f, 1f), 1f) },
+            new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) }
+        );
+        col.color = g;
+
+        var sol = ps.sizeOverLifetime;
+        sol.enabled = true;
+        sol.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.2f));
+
+        EditorUtility.SetDirty(go);
+        EditorUtility.SetDirty(ps);
+        EditorUtility.SetDirty(pr);
+    }
+
+    static void ConfigureLandingFlash(GameObject go, Material mat)
+    {
+        var ps = go.GetComponent<ParticleSystem>() ?? go.AddComponent<ParticleSystem>();
+        var pr = go.GetComponent<ParticleSystemRenderer>() ?? go.AddComponent<ParticleSystemRenderer>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        pr.sharedMaterial = mat;
+        pr.renderMode = ParticleSystemRenderMode.Billboard;
         pr.sortingLayerName = "Default";
         pr.sortingOrder = 5;
 
         var main = ps.main;
         main.loop = false;
-        main.duration = 0.6f;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.4f, 0.7f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(3f, 7f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.18f);
+        main.duration = 0.2f;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.12f, 0.18f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0f, 0f);
+        main.startSize = new ParticleSystem.MinMaxCurve(1.6f, 2.2f);
         main.startColor = Color.white;
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.maxParticles = 40;
+        main.startRotation3D = false;
+        main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+        main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        main.maxParticles = 4;
         main.playOnAwake = false;
-        // Local to the particle system only — independent of the player's
-        // Rigidbody2D.gravityScale (which stays 0). Lets chips arc up and
-        // fall back down for a "kicked debris" motion.
-        main.gravityModifier = 1.2f;
 
         var emission = ps.emission;
         emission.enabled = true;
         emission.rateOverTime = 0f;
-        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 20) });
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 2) });
 
-        // Arc=180 (with default rotation) restricts the circle to its
-        // upper half, so every chip's inherent radial direction already
-        // points up-and-outward from the floor point instead of a full
-        // 360-degree burst that would send half the chips down into the
-        // ground.
+        // No shape module — both particles spawn exactly at the impact
+        // point rather than spread across an area, so it reads as a single
+        // sharp pop rather than a cluster of sparks.
         var shape = ps.shape;
-        shape.enabled = true;
-        shape.shapeType = ParticleSystemShapeType.Circle;
-        shape.radius = 0.12f;
-        shape.radiusThickness = 1f;
-        shape.arc = 180f;
-        shape.rotation = Vector3.zero;
-
-        var vol = ps.velocityOverLifetime;
-        vol.enabled = true;
-        vol.space = ParticleSystemSimulationSpace.World;
-        vol.x = new ParticleSystem.MinMaxCurve(0f, 0f);
-        vol.y = new ParticleSystem.MinMaxCurve(1f, 3f);
-        vol.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+        shape.enabled = false;
 
         var col = ps.colorOverLifetime;
         col.enabled = true;
-        var g4 = new Gradient();
-        g4.SetKeys(
-            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(0.6f, 0.8f, 1f), 1f) },
-            new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.7f), new GradientAlphaKey(0f, 1f) }
+        var g5 = new Gradient();
+        g5.SetKeys(
+            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+            new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.5f, 0.4f), new GradientAlphaKey(0f, 1f) }
         );
-        col.color = g4;
+        col.color = g5;
 
+        // Collapses slightly as it fades — sells a quick "pop" rather than
+        // a steady glow.
         var sol = ps.sizeOverLifetime;
         sol.enabled = true;
-        sol.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.6f));
+        sol.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1.3f, 1f, 0.6f));
 
         EditorUtility.SetDirty(go);
         EditorUtility.SetDirty(ps);

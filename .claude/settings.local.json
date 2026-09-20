@@ -144,7 +144,9 @@
       "Bash(powershell -NoProfile -Command '$r = New-Object System.Random; for \\($i=0; $i -lt 6; $i++\\) { $r.Next\\(100000000, 999999999\\).ToString\\(\\) + $r.Next\\(100000000, 999999999\\).ToString\\(\\) }')",
       "mcp__unity-editor-mcp__get_material_properties",
       "mcp__unity-editor-mcp__run_script",
-      "mcp__unity-editor-mcp__save_all"
+      "mcp__unity-editor-mcp__save_all",
+      "mcp__unity-editor-mcp__eval_file",
+      "mcp__unity-editor-mcp__delete_gameobject"
     ]
   }
 }

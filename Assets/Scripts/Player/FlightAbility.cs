@@ -73,7 +73,6 @@ namespace HeroFangame.Player
         [SerializeField] private ParticleSystem flightAuraRingsVFX;
         [SerializeField] private ParticleSystem flightPropulsionVFX;
         [SerializeField] private ParticleSystem flightLandingVFX;
-        [SerializeField] private ParticleSystem flightLandingDebrisVFX;
         [SerializeField] private ParticleSystem flightCrashVFX;
         [SerializeField] private ParticleSystem flightChargeDebrisVFX;
 
@@ -246,7 +245,6 @@ namespace HeroFangame.Player
             flightAuraRingsVFX?.Stop();
             ghostTrail?.StopTrail();
             flightLandingVFX?.Play();
-            flightLandingDebrisVFX?.Play();
             CameraShake.GetOrCreate()?.Pulse(landingShakeDuration, landingShakeAmplitude);
 
             // Same radial knockback/damage/squash treatment as liftoff, so
