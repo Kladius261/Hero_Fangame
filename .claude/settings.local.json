@@ -146,7 +146,9 @@
       "mcp__unity-editor-mcp__run_script",
       "mcp__unity-editor-mcp__save_all",
       "mcp__unity-editor-mcp__eval_file",
-      "mcp__unity-editor-mcp__delete_gameobject"
+      "mcp__unity-editor-mcp__delete_gameobject",
+      "mcp__unity-editor-mcp__list_open_scenes",
+      "mcp__unity-editor-mcp__add_component"
     ]
   }
 }

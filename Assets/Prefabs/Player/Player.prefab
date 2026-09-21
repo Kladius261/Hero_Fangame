@@ -24226,6 +24226,7 @@ GameObject:
   - component: {fileID: 384396058184083403}
   - component: {fileID: 889354144684732898}
   - component: {fileID: 830490757953135061}
+  - component: {fileID: -34217933127708495}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -24921,6 +24922,7 @@ MonoBehaviour:
   flightHoverGhostTrailInterval: 0.02
   doubleTapWindow: 0.3
   chargeSpeed: 30
+  chargeAimSweepSpeedDegreesPerSecond: 180
   chargeDamage: 3
   chargeKnockbackForce: 14
   chargeAoeRadius: 2.5
@@ -24933,12 +24935,28 @@ MonoBehaviour:
   chargeCooldown: 0.4
   ghostTrail: {fileID: 889354144684732898}
   playerFlash: {fileID: 384396058184083403}
+  playerSquash: {fileID: -34217933127708495}
   flightAuraVFX: {fileID: 8384187676761477675}
   flightAuraRingsVFX: {fileID: 6162221765179186907}
   flightPropulsionVFX: {fileID: 8728125401053041419}
   flightLandingVFX: {fileID: 2499102555633792895}
   flightCrashVFX: {fileID: 6455817499858375674}
   flightChargeDebrisVFX: {fileID: 5914917055383234679}
+--- !u!114 &-34217933127708495
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5530497137793543233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb90eab4944f52d45b3de080125dec8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Core.HitSquashEffect
+  squashDuration: 0.14
+  stretchFactor: 1.2
+  squishFactor: 0.8
 --- !u!1 &5732415952229131395
 GameObject:
   m_ObjectHideFlags: 0

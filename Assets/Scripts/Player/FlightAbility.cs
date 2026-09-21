@@ -10,12 +10,13 @@ namespace HeroFangame.Player
     /// Flight (Shift) lifts the player, doubles move speed, disables all
     /// offensive abilities (see the IsFlightMode guards in PlayerCombat /
     /// HeatVisionAbility / FreezeBreathAbility), and knocks back/damages
-    /// nearby enemies on liftoff. While flying, double-tapping an arrow key
-    /// fires an uninterruptible Charge dash with a ghost trail that ends the
-    /// instant it hits anything (impact feedback + a brief re-charge
-    /// cooldown), returning to a normal hover afterward. Releasing Flight
-    /// while hovering — whether idle or just after a Charge — is what
-    /// actually triggers landing.
+    /// nearby enemies on liftoff. While flying, double-tapping Left or Right
+    /// fires an uninterruptible Charge dash with a ghost trail; once firing,
+    /// holding Up/Down steers the dash diagonally (see AbilityAimController)
+    /// without ever being cancelable. It still ends the instant it hits
+    /// anything (impact feedback + a brief re-charge cooldown), returning to
+    /// a normal hover afterward. Releasing Flight while hovering — whether
+    /// idle or just after a Charge — is what actually triggers landing.
     /// </summary>
     [RequireComponent(typeof(PlayerInputHandler))]
     [RequireComponent(typeof(PlayerController))]
@@ -51,6 +52,8 @@ namespace HeroFangame.Player
         [Header("Charge")]
         [SerializeField] private float doubleTapWindow = 0.3f;
         [SerializeField] private float chargeSpeed = 30f;
+        [Tooltip("How fast Up/Down steers the dash once it's firing, in degrees/second, mirroring Heat Vision/Freeze Breath's aim sweep (see AbilityAimController).")]
+        [SerializeField] private float chargeAimSweepSpeedDegreesPerSecond = 180f;
         [SerializeField] private int chargeDamage = 3;
         [SerializeField] private float chargeKnockbackForce = 14f;
         [Tooltip("Secondary splash damage/knockback around the crash point, hitting anything near the primary target/wall a Charge slams into (which itself still takes the full chargeDamage/chargeKnockbackForce above via its own direct hit).")]
@@ -67,6 +70,8 @@ namespace HeroFangame.Player
         [Header("Components")]
         [SerializeField] private GhostTrailEffect ghostTrail;
         [SerializeField] private FlashEffect playerFlash;
+        [Tooltip("Reused from enemy hit feedback: PlaySquash(direction) stretches along direction and squishes perpendicular. Vector2.up on liftoff reads as a stretch (tall/thin); Vector2.right on landing reads as a squash (wide/flat).")]
+        [SerializeField] private HitSquashEffect playerSquash;
 
         [Header("VFX")]
         [SerializeField] private ParticleSystem flightAuraVFX;
@@ -82,12 +87,14 @@ namespace HeroFangame.Player
 
         private State state;
         private Vector2 chargeDirection;
+        private Vector2 chargeHorizontalFacing;
+        private AbilityAimController chargeAimController;
 
         private float hoverBobTimer;
         private float hoverBobOffset;
 
-        private bool prevUp, prevDown, prevLeft, prevRight;
-        private float lastTapTimeUp = -100f, lastTapTimeDown = -100f, lastTapTimeLeft = -100f, lastTapTimeRight = -100f;
+        private bool prevLeft, prevRight;
+        private float lastTapTimeLeft = -100f, lastTapTimeRight = -100f;
         private float chargeCooldownUntil = -100f;
 
         private void Awake()
@@ -95,6 +102,7 @@ namespace HeroFangame.Player
             input = GetComponent<PlayerInputHandler>();
             controller = GetComponent<PlayerController>();
             rb = GetComponent<Rigidbody2D>();
+            chargeAimController = new AbilityAimController(chargeAimSweepSpeedDegreesPerSecond);
         }
 
         private void Update()
@@ -119,7 +127,10 @@ namespace HeroFangame.Player
 
                 case State.Charging:
                     // Uninterruptible: FlightHeld is ignored entirely here.
-                    // Resolution happens via OnCollisionEnter2D below.
+                    // Only Up/Down can steer (see AbilityAimController); the
+                    // dash itself only ends via OnCollisionEnter2D below.
+                    chargeDirection = chargeAimController.Resolve(isNewActivation: false, input.MoveInput, chargeHorizontalFacing, Time.deltaTime);
+                    controller.SetVelocityOverride(chargeDirection * chargeSpeed);
                     break;
             }
         }
@@ -144,29 +155,22 @@ namespace HeroFangame.Player
         private void CheckDoubleTap()
         {
             Vector2 move = input.MoveInput;
-            bool up = move.y > 0.5f;
-            bool down = move.y < -0.5f;
             bool left = move.x < -0.5f;
             bool right = move.x > 0.5f;
 
             bool charged =
-                CheckDirection(up, prevUp, ref lastTapTimeUp, Vector2.up) ||
-                CheckDirection(down, prevDown, ref lastTapTimeDown, Vector2.down) ||
                 CheckDirection(left, prevLeft, ref lastTapTimeLeft, Vector2.left) ||
                 CheckDirection(right, prevRight, ref lastTapTimeRight, Vector2.right);
 
-            prevUp = up;
-            prevDown = down;
             prevLeft = left;
             prevRight = right;
 
             if (charged)
             {
                 // A charge just started this frame — clear the other
-                // directions' held-state tracking so a diagonal double-tap
-                // held alongside the charged axis can't immediately queue a
-                // second charge attempt once this one lands.
-                prevUp = prevDown = prevLeft = prevRight = false;
+                // direction's held-state tracking so it can't immediately
+                // queue a second charge attempt once this one lands.
+                prevLeft = prevRight = false;
             }
         }
 
@@ -209,6 +213,7 @@ namespace HeroFangame.Player
             hoverBobOffset = 0f;
 
             CameraShake.GetOrCreate()?.Pulse(liftoffShakeDuration, liftoffShakeAmplitude);
+            playerSquash?.PlaySquash(Vector2.up);
             flightPropulsionVFX?.Play();
             flightAuraVFX?.Play();
             flightAuraRingsVFX?.Play();
@@ -245,6 +250,7 @@ namespace HeroFangame.Player
             flightAuraRingsVFX?.Stop();
             ghostTrail?.StopTrail();
             flightLandingVFX?.Play();
+            playerSquash?.PlaySquash(Vector2.right);
             CameraShake.GetOrCreate()?.Pulse(landingShakeDuration, landingShakeAmplitude);
 
             // Same radial knockback/damage/squash treatment as liftoff, so
@@ -266,8 +272,9 @@ namespace HeroFangame.Player
         private void StartCharge(Vector2 direction)
         {
             state = State.Charging;
-            chargeDirection = direction;
-            controller.SetVelocityOverride(direction * chargeSpeed);
+            chargeHorizontalFacing = direction;
+            chargeDirection = chargeAimController.Resolve(isNewActivation: true, input.MoveInput, chargeHorizontalFacing, Time.deltaTime);
+            controller.SetVelocityOverride(chargeDirection * chargeSpeed);
             CameraShake.GetOrCreate()?.SetShaking(true);
             // Force-restart even though the hover trail is already running:
             // switches it from the denser hover interval to Charge's own
@@ -378,8 +385,8 @@ namespace HeroFangame.Player
 
         private void ResetDoubleTapState()
         {
-            prevUp = prevDown = prevLeft = prevRight = false;
-            lastTapTimeUp = lastTapTimeDown = lastTapTimeLeft = lastTapTimeRight = -100f;
+            prevLeft = prevRight = false;
+            lastTapTimeLeft = lastTapTimeRight = -100f;
         }
     }
 }
