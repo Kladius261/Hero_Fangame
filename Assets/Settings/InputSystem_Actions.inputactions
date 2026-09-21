@@ -1026,19 +1026,9 @@
                     "priority": 0
                 },
                 {
-                    "name": "PunchA",
+                    "name": "Punch",
                     "type": "Button",
                     "id": "4ce23e50-858d-4147-86b8-f7cc3be7a072",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false,
-                    "priority": 0
-                },
-                {
-                    "name": "PunchS",
-                    "type": "Button",
-                    "id": "b622972a-a246-4436-84af-abbc13f13dfd",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -1135,29 +1125,18 @@
                 {
                     "name": "",
                     "id": "93c190d3-f3dc-4d07-bf9a-ba1d7ba6cb85",
-                    "path": "<Keyboard>/a",
+                    "path": "<Keyboard>/f",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "PunchA",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "01f73b66-6ae7-499a-9268-e90116ac9eef",
-                    "path": "<Keyboard>/s",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "PunchS",
+                    "action": "Punch",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
                     "id": "4d8cea96-ef34-491a-a565-01fbae9f6b93",
-                    "path": "<Keyboard>/leftShift",
+                    "path": "<Keyboard>/space",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -1168,7 +1147,7 @@
                 {
                     "name": "",
                     "id": "77abec93-b23d-4593-baef-1484bd1348eb",
-                    "path": "<Keyboard>/q",
+                    "path": "<Keyboard>/d",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -1179,7 +1158,7 @@
                 {
                     "name": "",
                     "id": "3edc1795-8036-4f9f-a2f1-5a853e371ef0",
-                    "path": "<Keyboard>/w",
+                    "path": "<Keyboard>/s",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

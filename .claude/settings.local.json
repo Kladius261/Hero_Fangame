@@ -148,7 +148,10 @@
       "mcp__unity-editor-mcp__eval_file",
       "mcp__unity-editor-mcp__delete_gameobject",
       "mcp__unity-editor-mcp__list_open_scenes",
-      "mcp__unity-editor-mcp__add_component"
+      "mcp__unity-editor-mcp__add_component",
+      "Bash(python3 -c \"import json; json.load\\(open\\('Assets/Settings/InputSystem_Actions.inputactions'\\)\\)\")",
+      "Bash(python -c \"import json; json.load\\(open\\('Assets/Settings/InputSystem_Actions.inputactions'\\)\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('Assets/Settings/InputSystem_Actions.inputactions','utf8'\\)\\); console.log\\('valid json'\\)\")"
     ]
   }
 }

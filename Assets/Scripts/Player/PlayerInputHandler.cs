@@ -16,8 +16,7 @@ namespace HeroFangame.Player
 
         private InputActionMap map;
         private InputAction moveAction;
-        private InputAction punchAAction;
-        private InputAction punchSAction;
+        private InputAction punchAction;
         private InputAction flightAction;
         private InputAction heatVisionAction;
         private InputAction freezeBreathAction;
@@ -27,8 +26,7 @@ namespace HeroFangame.Player
         public bool FreezeBreathHeld { get; private set; }
         public bool FlightHeld { get; private set; }
 
-        public event System.Action OnPunchA;
-        public event System.Action OnPunchS;
+        public event System.Action OnPunch;
 
         private void Awake()
         {
@@ -41,8 +39,7 @@ namespace HeroFangame.Player
             map = inputActions.FindActionMap(actionMapName, throwIfNotFound: true);
 
             moveAction = map.FindAction("Move");
-            punchAAction = map.FindAction("PunchA");
-            punchSAction = map.FindAction("PunchS");
+            punchAction = map.FindAction("Punch");
             flightAction = map.FindAction("Flight");
             heatVisionAction = map.FindAction("HeatVision");
             freezeBreathAction = map.FindAction("FreezeBreath");
@@ -52,14 +49,12 @@ namespace HeroFangame.Player
         {
             map?.Enable();
 
-            if (punchAAction != null) punchAAction.performed += HandlePunchA;
-            if (punchSAction != null) punchSAction.performed += HandlePunchS;
+            if (punchAction != null) punchAction.performed += HandlePunch;
         }
 
         private void OnDisable()
         {
-            if (punchAAction != null) punchAAction.performed -= HandlePunchA;
-            if (punchSAction != null) punchSAction.performed -= HandlePunchS;
+            if (punchAction != null) punchAction.performed -= HandlePunch;
 
             map?.Disable();
         }
@@ -72,7 +67,6 @@ namespace HeroFangame.Player
             FlightHeld = flightAction != null && flightAction.IsPressed();
         }
 
-        private void HandlePunchA(InputAction.CallbackContext ctx) => OnPunchA?.Invoke();
-        private void HandlePunchS(InputAction.CallbackContext ctx) => OnPunchS?.Invoke();
+        private void HandlePunch(InputAction.CallbackContext ctx) => OnPunch?.Invoke();
     }
 }

@@ -6,7 +6,7 @@ using HeroFangame.Camera;
 namespace HeroFangame.Player
 {
     /// <summary>
-    /// Two-button (A/S) punch combo. Each press advances a 3-step combo chain
+    /// One-button (F) punch combo. Each press advances a 3-step combo chain
     /// that resets after a short window of no input. Each step spawns a brief
     /// overlap hitbox in front of the player on the Enemy/Destructible layers.
     /// </summary>
@@ -50,14 +50,12 @@ namespace HeroFangame.Player
 
         private void OnEnable()
         {
-            input.OnPunchA += HandlePunch;
-            input.OnPunchS += HandlePunch;
+            input.OnPunch += HandlePunch;
         }
 
         private void OnDisable()
         {
-            input.OnPunchA -= HandlePunch;
-            input.OnPunchS -= HandlePunch;
+            input.OnPunch -= HandlePunch;
         }
 
         private void Update()
