@@ -24471,9 +24471,8 @@ MonoBehaviour:
     m_Bits: 1536
   tapDamage: 3
   beamTickDamage: 1
-  beamTickInterval: 0.15
+  beamTickInterval: 0.1
   knockbackForce: 6
-  knockbackRepeatInterval: 1
   tapPowerCost: 10
   holdPowerCostPerSecond: 30
   tapPulseDuration: 0.12
@@ -24495,8 +24494,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33f4c02958d309040a9f21c605a255e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Player.FreezeBreathAbility
-  tapConeSize: {x: 2.5, y: 1.5}
-  holdConeSize: {x: 3.5, y: 2.2}
+  tapConeSize: {x: 3.125, y: 1.875}
+  holdConeSize: {x: 4.375, y: 2.75}
   coneOffset: 0.5
   hittableLayers:
     serializedVersion: 2

@@ -10,13 +10,14 @@ namespace HeroFangame.Player
     /// Long-range narrow attack, fired strictly horizontally (left or right,
     /// picked from the player's last horizontal facing — never up/down or
     /// diagonal) and far enough to reach across the screen from anywhere in
-    /// the level. A tap fires one instant hit against only the first
-    /// (closest) target the beam touches. Continuing to hold turns it into a
-    /// sustained beam that keeps hitting only that same single-target rule,
-    /// ticks damage, drains Power (auto-cutting off at 0), and knocks its
-    /// current target back on first contact and then every second of
-    /// continuous contact after that. Drives a beam visual, a smoke/fire
-    /// impact effect, and a subtle continuous camera shake while firing.
+    /// the level. A tap fires one instant, piercing hit that damages and
+    /// knocks back every enemy currently inside the beam's box, not just the
+    /// closest. Continuing to hold turns it into a sustained beam that
+    /// re-applies that same piercing damage + knockback to everyone
+    /// currently inside the beam on every tick, drains Power (auto-cutting
+    /// off at 0). Drives a beam visual, a smoke/fire impact effect (clipped
+    /// to the single closest surface for visual accuracy), and a subtle
+    /// continuous camera shake while firing.
     /// </summary>
     [RequireComponent(typeof(PlayerInputHandler))]
     [RequireComponent(typeof(PlayerController))]
@@ -33,11 +34,10 @@ namespace HeroFangame.Player
         [Header("Damage")]
         [SerializeField] private int tapDamage = 3;
         [SerializeField] private int beamTickDamage = 1;
-        [SerializeField] private float beamTickInterval = 0.15f;
+        [SerializeField] private float beamTickInterval = 0.1f;
 
         [Header("Knockback")]
         [SerializeField] private float knockbackForce = 6f;
-        [SerializeField] private float knockbackRepeatInterval = 1f;
 
         [Header("Power Cost")]
         [SerializeField] private float tapPowerCost = 10f;
@@ -68,8 +68,6 @@ namespace HeroFangame.Player
         private float tapPulseTimeRemaining;
         private bool isBeamActive;
 
-        private Collider2D currentContactTarget;
-        private float contactKnockbackTimer;
         private AudioPitchWobble pitchWobble;
 
         private void Awake()
@@ -114,7 +112,7 @@ namespace HeroFangame.Player
 
             if (isHeld && !wasHeld)
             {
-                // Tap: instant shot against the first target only.
+                // Tap: instant piercing shot against every enemy in the beam.
                 if (power.TrySpend(tapPowerCost))
                 {
                     FireTap();
@@ -124,10 +122,10 @@ namespace HeroFangame.Player
             }
             else if (isHeld && wasHeld)
             {
-                // Hold: sustained beam. Resolve aim/contact every frame so
-                // the visual, impact VFX, and knockback cadence stay in
-                // sync with the target, but only apply damage on the
-                // existing tick cadence.
+                // Hold: sustained beam. Resolve aim/visuals every frame so
+                // they stay in sync with player input, but only apply
+                // damage + knockback to everyone in the beam on the tick
+                // cadence.
                 float drained = power.DrainOverTime(holdPowerCostPerSecond);
                 if (drained > 0f)
                 {
@@ -162,14 +160,14 @@ namespace HeroFangame.Player
             wasHeld = isHeld && activatedThisFrame;
         }
 
-        private BeamHitResult Probe(Vector2 origin, Vector2 dir, out bool hitScreenEdge)
+        private BeamHitResult Probe(Vector2 origin, Vector2 dir, out bool hitScreenEdge, out float maxDistance)
         {
             // Never let the beam reach past the edge of the camera's
             // current view — enemies further along the level haven't
             // scrolled into frame yet and shouldn't be hittable before the
             // player can even see them.
             float screenEdgeDistance = CameraViewBounds.GetDistanceToEdge(origin.x, dir.x);
-            float maxDistance = Mathf.Min(beamRange, screenEdgeDistance);
+            maxDistance = Mathf.Min(beamRange, screenEdgeDistance);
             var result = AttackUtility.BoxCastSinglePeek(origin, new Vector2(beamSize.y, beamSize.y), dir, maxDistance, hittableLayers);
 
             // True only when nothing was actually hit AND the beam's reach
@@ -179,6 +177,26 @@ namespace HeroFangame.Player
             // vanishing into nothing.
             hitScreenEdge = !result.DidHit && screenEdgeDistance < beamRange;
             return result;
+        }
+
+        /// <summary>
+        /// Damages and knocks back every enemy currently inside the beam's
+        /// full box (origin to maxDistance along dir) in one pass, instead
+        /// of only the single closest target — lets the beam pierce through
+        /// and hit multiple enemies lined up along its path, and lets a
+        /// sweeping beam damage/push each enemy it currently touches every
+        /// tick rather than just the first one it ever made contact with.
+        /// </summary>
+        private void ApplyBeamDamageAndKnockback(Vector2 origin, Vector2 dir, float maxDistance, int damage, bool applyKnockback)
+        {
+            Vector2 center = origin + dir * (maxDistance * 0.5f);
+            Vector2 size = new Vector2(maxDistance, beamSize.y);
+            float angle = Vector2.SignedAngle(Vector2.right, dir);
+            var hits = AttackUtility.OverlapBoxAndDamage(center, size, angle, hittableLayers, damage, gameObject, dir, applyKnockback ? knockbackForce : 0f, out int hitCount);
+            for (int i = 0; i < hitCount; i++)
+            {
+                hits[i].GetComponentInParent<HitSquashEffect>()?.PlaySquash(dir);
+            }
         }
 
         /// <summary>
@@ -195,18 +213,9 @@ namespace HeroFangame.Player
         {
             Vector2 dir = GetBeamDirection(isNewActivation: true);
             Vector2 origin = (Vector2)transform.position + dir * beamOffset;
-            var hit = Probe(origin, dir, out bool hitScreenEdge);
+            var hit = Probe(origin, dir, out bool hitScreenEdge, out float maxDistance);
 
-            if (hit.Target != null)
-            {
-                hit.Target.TakeDamage(tapDamage, new DamageInfo(gameObject, dir, knockbackForce));
-                var rb = hit.Collider.attachedRigidbody;
-                if (rb != null)
-                {
-                    rb.AddForce(dir * knockbackForce, ForceMode2D.Impulse);
-                    hit.Collider.GetComponentInParent<HitSquashEffect>()?.PlaySquash(dir);
-                }
-            }
+            ApplyBeamDamageAndKnockback(origin, dir, maxDistance, tapDamage, applyKnockback: true);
 
             tapPulseTimeRemaining = tapPulseDuration;
             ActivateBeamVisual(origin, dir, hit, hitScreenEdge);
@@ -217,43 +226,14 @@ namespace HeroFangame.Player
         {
             Vector2 dir = GetBeamDirection(isNewActivation: false);
             Vector2 origin = (Vector2)transform.position + dir * beamOffset;
-            var hit = Probe(origin, dir, out bool hitScreenEdge);
+            var hit = Probe(origin, dir, out bool hitScreenEdge, out float maxDistance);
 
             ActivateBeamVisual(origin, dir, hit, hitScreenEdge);
             SetCameraShake(true);
 
-            Collider2D hitCollider = hit.DidHit ? hit.Collider : null;
-            bool isNewContact = hitCollider != currentContactTarget;
-            if (isNewContact)
+            if (doDamageTick)
             {
-                currentContactTarget = hitCollider;
-                contactKnockbackTimer = 0f;
-            }
-
-            bool applyKnockback = false;
-            if (hitCollider != null)
-            {
-                contactKnockbackTimer += Time.deltaTime;
-                if (isNewContact || contactKnockbackTimer >= knockbackRepeatInterval)
-                {
-                    applyKnockback = true;
-                    contactKnockbackTimer = 0f;
-                }
-            }
-
-            if (doDamageTick && hit.Target != null)
-            {
-                hit.Target.TakeDamage(beamTickDamage, new DamageInfo(gameObject, dir, applyKnockback ? knockbackForce : 0f));
-            }
-
-            if (applyKnockback && hit.Target != null)
-            {
-                var rb = hit.Collider.attachedRigidbody;
-                if (rb != null)
-                {
-                    rb.AddForce(dir * knockbackForce, ForceMode2D.Impulse);
-                    hit.Collider.GetComponentInParent<HitSquashEffect>()?.PlaySquash(dir);
-                }
+                ApplyBeamDamageAndKnockback(origin, dir, maxDistance, beamTickDamage, applyKnockback: true);
             }
         }
 
@@ -293,9 +273,6 @@ namespace HeroFangame.Player
 
         private void StopBeamVisuals()
         {
-            currentContactTarget = null;
-            contactKnockbackTimer = 0f;
-
             if (!isBeamActive)
             {
                 return;

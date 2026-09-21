@@ -7385,7 +7385,7 @@ MonoBehaviour:
   freezeVisual: {fileID: 2161864642756963197}
   freezeKnockbackDistance: 0.4
   freezeShakeDuration: 0.12
-  iceBreakHitStopDuration: 0.2
+  iceBreakHitStopDuration: 0.1
 --- !u!114 &2161864642756963197
 MonoBehaviour:
   m_ObjectHideFlags: 0

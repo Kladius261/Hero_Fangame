@@ -58,7 +58,7 @@ namespace HeroFangame.Enemy
         [SerializeField] private EnemyFreezeVisualEffect freezeVisual;
         [SerializeField] private float freezeKnockbackDistance = 0.4f;
         [SerializeField] private float freezeShakeDuration = 0.12f;
-        [SerializeField] private float iceBreakHitStopDuration = 0.2f;
+        [SerializeField] private float iceBreakHitStopDuration = 0.1f;
 
         private Rigidbody2D rb;
         private SpriteRenderer spriteRenderer;

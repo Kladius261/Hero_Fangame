@@ -25,8 +25,8 @@ namespace HeroFangame.Player
     public class FreezeBreathAbility : MonoBehaviour
     {
         [Header("Cone Shape")]
-        [SerializeField] private Vector2 tapConeSize = new Vector2(3.5f, 1.0f);
-        [SerializeField] private Vector2 holdConeSize = new Vector2(5f, 1.4f);
+        [SerializeField] private Vector2 tapConeSize = new Vector2(4.375f, 1.25f);
+        [SerializeField] private Vector2 holdConeSize = new Vector2(6.25f, 1.75f);
         [SerializeField] private float coneOffset = 0.5f;
         [SerializeField] private LayerMask hittableLayers;
 
