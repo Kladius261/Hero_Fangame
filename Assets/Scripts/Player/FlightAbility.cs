@@ -10,7 +10,13 @@ namespace HeroFangame.Player
     /// Flight (Shift) lifts the player, doubles move speed, disables all
     /// offensive abilities (see the IsFlightMode guards in PlayerCombat /
     /// HeatVisionAbility / FreezeBreathAbility), and knocks back/damages
-    /// nearby enemies on liftoff. While flying, double-tapping Left or Right
+    /// nearby enemies on liftoff. The guard also runs the other way: while
+    /// grounded, Shift is ignored for as long as Heat Vision or Freeze
+    /// Breath has PlayerController's movement locked (see
+    /// PlayerController.IsMovementLocked), so Flight can't be entered
+    /// mid-beam/mid-cone — it only becomes available again once the player
+    /// releases Q/W or the ability force-cuts itself from running out of
+    /// Power. While flying, double-tapping Left or Right
     /// fires an uninterruptible Charge dash with a ghost trail; once firing,
     /// holding Up/Down steers the dash diagonally (see AbilityAimController)
     /// without ever being cancelable. It still ends the instant it hits
@@ -110,7 +116,7 @@ namespace HeroFangame.Player
             switch (state)
             {
                 case State.Grounded:
-                    if (input.FlightHeld)
+                    if (input.FlightHeld && !controller.IsMovementLocked)
                     {
                         EnterFlight();
                     }
