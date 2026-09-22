@@ -28,6 +28,17 @@ namespace HeroFangame.Player
 
         public event System.Action OnPunch;
 
+        /// <summary>
+        /// Optional single-subscriber hook that gets first refusal on every
+        /// F-press before it becomes a punch. Returning true means the press
+        /// was consumed (e.g. by PlayerGrabAbility grabbing/throwing) and
+        /// OnPunch should NOT fire. Using a synchronous delegate here (rather
+        /// than letting both PlayerCombat and PlayerGrabAbility subscribe to
+        /// OnPunch independently) avoids any Update()-order dependency
+        /// between them for a single physical key press.
+        /// </summary>
+        public System.Func<bool> PunchInterceptor;
+
         private void Awake()
         {
             if (inputActions == null)
@@ -67,6 +78,13 @@ namespace HeroFangame.Player
             FlightHeld = flightAction != null && flightAction.IsPressed();
         }
 
-        private void HandlePunch(InputAction.CallbackContext ctx) => OnPunch?.Invoke();
+        private void HandlePunch(InputAction.CallbackContext ctx)
+        {
+            if (PunchInterceptor != null && PunchInterceptor())
+            {
+                return;
+            }
+            OnPunch?.Invoke();
+        }
     }
 }

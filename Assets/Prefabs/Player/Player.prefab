@@ -24227,6 +24227,7 @@ GameObject:
   - component: {fileID: 889354144684732898}
   - component: {fileID: 830490757953135061}
   - component: {fileID: -34217933127708495}
+  - component: {fileID: 263715548480141037}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -50851,3 +50852,20 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &263715548480141037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5530497137793543233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af021fcd508040e5a2b2aecb3032e1b9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Player.PlayerGrabAbility
+  grabRange: 1.5
+  grabbableLayers:
+    serializedVersion: 2
+    m_Bits: 1024
+  doubleTapWindow: 0.3

@@ -72,7 +72,7 @@ namespace HeroFangame.Player
 
         private void HandlePunch()
         {
-            if (controller.IsFlightMode)
+            if (controller.IsFlightMode || controller.IsGrabStance)
             {
                 return;
             }

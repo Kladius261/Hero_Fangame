@@ -17,6 +17,7 @@ namespace HeroFangame.Player
         [Header("Movement")]
         [SerializeField] private float moveSpeed = 6f;
         [SerializeField] private float flightMoveSpeedMultiplier = 2f;
+        [SerializeField] private float grabStanceMoveSpeedMultiplier = 0.75f;
 
         private Rigidbody2D rb;
         private PlayerInputHandler input;
@@ -31,6 +32,7 @@ namespace HeroFangame.Player
         public Vector2 Facing { get; private set; } = Vector2.right;
         public bool IsMovementLocked => movementLockers.Count > 0;
         public bool IsFlightMode { get; private set; }
+        public bool IsGrabStance { get; private set; }
 
         public void LockMovement(object requester)
         {
@@ -45,6 +47,17 @@ namespace HeroFangame.Player
         public void SetFlightMode(bool active)
         {
             IsFlightMode = active;
+        }
+
+        /// <summary>
+        /// Toggled by PlayerGrabAbility while an object is mounted on the
+        /// player. Deliberately NOT implemented via LockMovement — grab
+        /// stance must still allow movement (just slower), unlike Heat
+        /// Vision/Freeze Breath/beam-lock which fully freeze movement.
+        /// </summary>
+        public void SetGrabStance(bool active)
+        {
+            IsGrabStance = active;
         }
 
         private Vector2? velocityOverride;
@@ -89,7 +102,7 @@ namespace HeroFangame.Player
                 return;
             }
 
-            float speed = moveSpeed * (IsFlightMode ? flightMoveSpeedMultiplier : 1f);
+            float speed = moveSpeed * (IsFlightMode ? flightMoveSpeedMultiplier : 1f) * (IsGrabStance ? grabStanceMoveSpeedMultiplier : 1f);
             rb.linearVelocity = input.MoveInput.normalized * speed;
         }
     }

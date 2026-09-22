@@ -116,7 +116,7 @@ namespace HeroFangame.Player
             switch (state)
             {
                 case State.Grounded:
-                    if (input.FlightHeld && !controller.IsMovementLocked)
+                    if (input.FlightHeld && !controller.IsMovementLocked && !controller.IsGrabStance)
                     {
                         EnterFlight();
                     }

@@ -86,7 +86,7 @@ namespace HeroFangame.Player
 
         private void Update()
         {
-            if (controller.IsFlightMode)
+            if (controller.IsFlightMode || controller.IsGrabStance)
             {
                 StopBeamVisuals();
                 return;

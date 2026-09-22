@@ -151,7 +151,13 @@
       "mcp__unity-editor-mcp__add_component",
       "Bash(python3 -c \"import json; json.load\\(open\\('Assets/Settings/InputSystem_Actions.inputactions'\\)\\)\")",
       "Bash(python -c \"import json; json.load\\(open\\('Assets/Settings/InputSystem_Actions.inputactions'\\)\\)\")",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('Assets/Settings/InputSystem_Actions.inputactions','utf8'\\)\\); console.log\\('valid json'\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('Assets/Settings/InputSystem_Actions.inputactions','utf8'\\)\\); console.log\\('valid json'\\)\")",
+      "Bash(python3 -c \"import uuid; print\\(uuid.uuid4\\(\\).hex\\); print\\(uuid.uuid4\\(\\).hex\\)\")",
+      "Bash(powershell -Command \"[guid]::NewGuid\\(\\).ToString\\('N'\\); [guid]::NewGuid\\(\\).ToString\\('N'\\)\")",
+      "Bash(where python3:*)",
+      "Bash(awk 'NR>=3 && NR<=7167 && /m_GameObject:/' \"/c/Users/gohun/OneDrive/Desktop/UnityProject/Hero_Fangame/Assets/Prefabs/Enemy/EnemyRobot.prefab\")",
+      "Bash(powershell -Command ':*)",
+      "Bash(xxd)"
     ]
   }
 }
