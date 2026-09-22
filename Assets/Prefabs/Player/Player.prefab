@@ -50868,4 +50868,3 @@ MonoBehaviour:
   grabbableLayers:
     serializedVersion: 2
     m_Bits: 1024
-  doubleTapWindow: 0.3

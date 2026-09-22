@@ -4,13 +4,13 @@ using HeroFangame.Interactables;
 namespace HeroFangame.Player
 {
     /// <summary>
-    /// Double-tap-F grab-and-throw for nearby DestructibleObjects. Hooks into
-    /// PlayerInputHandler.PunchInterceptor so it gets first, single-point,
-    /// order-independent refusal authority over every F-press: while
-    /// grabbing nothing, a double-tap near a grabbable object mounts it on
-    /// the player (entering "grab stance") and swallows that press; while
-    /// already grabbing, the very next single press throws it. Every other
-    /// press is left alone and falls through to the normal punch.
+    /// G-to-grab and G-to-throw for nearby IGrabbable objects (Destructibles,
+    /// Explosives, ...). G is a dedicated grab input — it never deals damage,
+    /// so approaching (and even picking up a frozen) object never risks an
+    /// accidental hit the way double-tapping the punch key used to. While not
+    /// carrying anything, G grabs the nearest target in range; while already
+    /// carrying, the next G-press throws instead. F is left as a plain punch
+    /// at all times.
     /// </summary>
     [RequireComponent(typeof(PlayerInputHandler))]
     [RequireComponent(typeof(PlayerController))]
@@ -19,15 +19,13 @@ namespace HeroFangame.Player
         [Header("Grab")]
         [SerializeField] private float grabRange = 1.5f;
         [SerializeField] private LayerMask grabbableLayers;
-        [SerializeField] private float doubleTapWindow = 0.3f;
 
         private PlayerInputHandler input;
         private PlayerController controller;
 
         private static readonly Collider2D[] overlapBuffer = new Collider2D[16];
 
-        private float lastTapTime = -100f;
-        private DestructibleObject grabbedTarget;
+        private IGrabbable grabbedTarget;
 
         public bool IsGrabbing => grabbedTarget != null;
 
@@ -39,15 +37,12 @@ namespace HeroFangame.Player
 
         private void OnEnable()
         {
-            input.PunchInterceptor = EvaluatePunchForGrab;
+            input.OnGrab += HandleGrabPressed;
         }
 
         private void OnDisable()
         {
-            if (input.PunchInterceptor == (System.Func<bool>)EvaluatePunchForGrab)
-            {
-                input.PunchInterceptor = null;
-            }
+            input.OnGrab -= HandleGrabPressed;
         }
 
         private void Update()
@@ -64,44 +59,31 @@ namespace HeroFangame.Player
             }
         }
 
-        private bool EvaluatePunchForGrab()
+        private void HandleGrabPressed()
         {
             if (IsGrabbing)
             {
                 Throw(controller.Facing);
-                return true;
+                return;
             }
 
-            float now = Time.unscaledTime;
-            bool isDoubleTap = (now - lastTapTime) <= doubleTapWindow;
-            lastTapTime = now;
-
-            if (isDoubleTap)
+            if (controller.IsFlightMode || controller.IsMovementLocked || controller.IsGrabStance)
             {
-                // Consume the tap regardless of outcome so a triple-tap can't
-                // chain straight into another grab attempt off the same pair
-                // of presses.
-                lastTapTime = -100f;
-
-                if (!controller.IsFlightMode && !controller.IsMovementLocked && !controller.IsGrabStance)
-                {
-                    var target = FindNearestGrabbable();
-                    if (target != null)
-                    {
-                        BeginGrab(target);
-                        return true;
-                    }
-                }
+                return;
             }
 
-            return false;
+            var target = FindNearestGrabbable();
+            if (target != null)
+            {
+                BeginGrab(target);
+            }
         }
 
-        private DestructibleObject FindNearestGrabbable()
+        private IGrabbable FindNearestGrabbable()
         {
             int count = Physics2D.OverlapCircleNonAlloc(transform.position, grabRange, overlapBuffer, grabbableLayers);
 
-            DestructibleObject nearest = null;
+            IGrabbable nearest = null;
             float nearestSqrDist = float.MaxValue;
             for (int i = 0; i < count; i++)
             {
@@ -110,12 +92,13 @@ namespace HeroFangame.Player
                 {
                     continue;
                 }
-                var candidate = hit.GetComponentInParent<DestructibleObject>();
+                var candidate = hit.GetComponentInParent<IGrabbable>();
                 if (candidate == null || candidate.IsGrabbed)
                 {
                     continue;
                 }
-                float sqrDist = ((Vector2)candidate.transform.position - (Vector2)transform.position).sqrMagnitude;
+                var candidateTransform = (candidate as Component).transform;
+                float sqrDist = ((Vector2)candidateTransform.position - (Vector2)transform.position).sqrMagnitude;
                 if (sqrDist < nearestSqrDist)
                 {
                     nearestSqrDist = sqrDist;
@@ -125,7 +108,7 @@ namespace HeroFangame.Player
             return nearest;
         }
 
-        private void BeginGrab(DestructibleObject target)
+        private void BeginGrab(IGrabbable target)
         {
             grabbedTarget = target;
             controller.SetGrabStance(true);

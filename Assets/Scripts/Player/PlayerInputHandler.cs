@@ -20,6 +20,7 @@ namespace HeroFangame.Player
         private InputAction flightAction;
         private InputAction heatVisionAction;
         private InputAction freezeBreathAction;
+        private InputAction grabAction;
 
         public Vector2 MoveInput { get; private set; }
         public bool HeatVisionHeld { get; private set; }
@@ -27,17 +28,7 @@ namespace HeroFangame.Player
         public bool FlightHeld { get; private set; }
 
         public event System.Action OnPunch;
-
-        /// <summary>
-        /// Optional single-subscriber hook that gets first refusal on every
-        /// F-press before it becomes a punch. Returning true means the press
-        /// was consumed (e.g. by PlayerGrabAbility grabbing/throwing) and
-        /// OnPunch should NOT fire. Using a synchronous delegate here (rather
-        /// than letting both PlayerCombat and PlayerGrabAbility subscribe to
-        /// OnPunch independently) avoids any Update()-order dependency
-        /// between them for a single physical key press.
-        /// </summary>
-        public System.Func<bool> PunchInterceptor;
+        public event System.Action OnGrab;
 
         private void Awake()
         {
@@ -54,6 +45,7 @@ namespace HeroFangame.Player
             flightAction = map.FindAction("Flight");
             heatVisionAction = map.FindAction("HeatVision");
             freezeBreathAction = map.FindAction("FreezeBreath");
+            grabAction = map.FindAction("Grab");
         }
 
         private void OnEnable()
@@ -61,11 +53,13 @@ namespace HeroFangame.Player
             map?.Enable();
 
             if (punchAction != null) punchAction.performed += HandlePunch;
+            if (grabAction != null) grabAction.performed += HandleGrab;
         }
 
         private void OnDisable()
         {
             if (punchAction != null) punchAction.performed -= HandlePunch;
+            if (grabAction != null) grabAction.performed -= HandleGrab;
 
             map?.Disable();
         }
@@ -80,11 +74,12 @@ namespace HeroFangame.Player
 
         private void HandlePunch(InputAction.CallbackContext ctx)
         {
-            if (PunchInterceptor != null && PunchInterceptor())
-            {
-                return;
-            }
             OnPunch?.Invoke();
+        }
+
+        private void HandleGrab(InputAction.CallbackContext ctx)
+        {
+            OnGrab?.Invoke();
         }
     }
 }

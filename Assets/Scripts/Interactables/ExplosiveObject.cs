@@ -8,27 +8,17 @@ using HeroFangame.Enemy;
 namespace HeroFangame.Interactables
 {
     /// <summary>
-    /// Stationary destructible prop. Takes damage from punches/Heat Vision/
-    /// Freeze Breath like any Damageable (see Damageable + DamageFlashAndDestroy
-    /// on this prefab), and additionally:
-    /// - Can be frozen by Freeze Breath (IFreezable) and takes bonus damage
-    ///   while frozen (IDamageModifier), mirroring EnemyRobot's freeze state
-    ///   machine almost exactly. Unlike EnemyRobot it never moves on its own
-    ///   (no wander/chase) and has no Rigidbody2D, so the short "pop away from
-    ///   the player" on breaking free is done via a direct transform.position
-    ///   offset rather than a physics-driven one.
-    /// - Can be grabbed and thrown by the player (see PlayerGrabAbility).
-    ///   While grabbed it's parented onto the player and its collider is
-    ///   disabled; on throw it flies a fixed distance over a fixed duration
-    ///   (always covering the full distance, regardless of obstacles) and,
-    ///   on landing, damages itself, deals Charge-Crash-style outward AOE
-    ///   damage/knockback to nearby enemies/destructibles, and plays the same
-    ///   camera shake/hit-stop game feel as Flight's Charge-Crash. If it was
-    ///   frozen at the moment it lands, the ice also shatters (same shatter
-    ///   VFX/sound as a normal ice-break), on top of the usual landing impact.
+    /// Grabbable/throwable/freezable prop that detonates on a single hit
+    /// (from a punch, Heat Vision, Freeze Breath tick, a throw landing, or
+    /// another explosion's AOE), unlike DestructibleObject which survives
+    /// several hits. Freeze behavior mirrors DestructibleObject/EnemyRobot
+    /// exactly (reversible exposure/toggle-thaw), but there is no "survive
+    /// a hit while frozen" branch here — any hit is lethal either way, so
+    /// HandleDamaged always detonates; being frozen only adds a shatter
+    /// flourish on top of the explosion.
     /// </summary>
     [RequireComponent(typeof(Damageable))]
-    public class DestructibleObject : MonoBehaviour, IFreezable, IDamageModifier, IGrabbable
+    public class ExplosiveObject : MonoBehaviour, IFreezable, IDamageModifier, IGrabbable
     {
         private enum FreezeState { Normal, Frozen }
 
@@ -40,7 +30,6 @@ namespace HeroFangame.Interactables
         [SerializeField] private EnemyFreezeVisualEffect freezeVisual;
         [SerializeField] private float freezeKnockbackDistance = 0.4f;
         [SerializeField] private float freezeShakeDuration = 0.12f;
-        [SerializeField] private float iceBreakHitStopDuration = 0.1f;
 
         [Header("Grab")]
         [SerializeField] private Vector3 grabLocalOffset = new Vector3(0f, 0.9f, 0f);
@@ -48,25 +37,33 @@ namespace HeroFangame.Interactables
         [Header("Throw")]
         [SerializeField] private float throwDistance = 6f;
         [SerializeField] private float throwDuration = 0.25f;
-        [SerializeField] private float throwImpactRadius = 2.5f;
-        [SerializeField] private int throwSelfDamage = 3;
-        [SerializeField] private int throwAoeDamage = 1;
-        [SerializeField] private float throwAoeKnockbackForce = 8f;
-        [SerializeField] private LayerMask throwAoeLayers;
-        [SerializeField] private float throwImpactShakeDuration = 0.15f;
-        [SerializeField] private float throwImpactShakeAmplitude = 1.75f;
-        [SerializeField] private float throwImpactHitStopDuration = 0.08f;
+
+        [Header("Explosion")]
+        [SerializeField] private float explosionRadius = 2.5f;
+        [SerializeField] private int explosionDamage = 1;
+        [SerializeField] private float explosionKnockbackForce = 8f;
+        [SerializeField] private LayerMask explosionLayers;
+        [SerializeField] private float explosionShakeDuration = 0.15f;
+        [SerializeField] private float explosionShakeAmplitude = 1.75f;
+        [SerializeField] private float explosionHitStopDuration = 0.08f;
+        [SerializeField] private Color explosionFlashColor = Color.white;
+        [SerializeField] private float explosionFlashDuration = 0.08f;
+        [SerializeField] private float explosionVfxLifetime = 0.6f;
+        [SerializeField] private ExplosionBurstVfx[] explosionBurstVfx;
+        [SerializeField] private int minBurstVfxSpawnCount = 5;
+        [SerializeField] private int maxBurstVfxSpawnCount = 6;
+        [SerializeField] private float burstVfxClusterRadius = 0.6f;
 
         private Damageable damageable;
         private SpriteRenderer spriteRenderer;
         private Collider2D col;
-        private HitSquashEffect squashEffect;
         private Transform player;
 
         private FreezeState state = FreezeState.Normal;
         private float freezeExposure;
         private Color baseColor;
         private bool isGrabbed;
+        private bool hasExploded;
         private Coroutine throwRoutine;
 
         public bool IsFrozen => state == FreezeState.Frozen;
@@ -77,7 +74,6 @@ namespace HeroFangame.Interactables
             damageable = GetComponent<Damageable>();
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             col = GetComponent<Collider2D>();
-            squashEffect = GetComponent<HitSquashEffect>();
 
             if (spriteRenderer != null)
             {
@@ -94,13 +90,11 @@ namespace HeroFangame.Interactables
         private void OnEnable()
         {
             damageable.OnDamaged += HandleDamaged;
-            damageable.OnDeath += HandleDeath;
         }
 
         private void OnDisable()
         {
             damageable.OnDamaged -= HandleDamaged;
-            damageable.OnDeath -= HandleDeath;
         }
 
         private void Update()
@@ -124,7 +118,7 @@ namespace HeroFangame.Interactables
             {
                 // Freeze Breath toggles an already-frozen target: a fresh
                 // press frees it instead of re-freezing it, same convention
-                // as EnemyRobot.
+                // as EnemyRobot/DestructibleObject.
                 if (isNewActivation)
                 {
                     Thaw(shattered: false);
@@ -171,41 +165,15 @@ namespace HeroFangame.Interactables
         }
 
         /// <summary>
-        /// DamageFlashAndDestroy keeps the GameObject alive (shrinking it)
-        /// for a short delay after death before actually destroying it.
-        /// Disabling the collider immediately on death closes a window
-        /// where PlayerGrabAbility could grab an already-dying object —
-        /// if it were then destroyed while still parented to the player,
-        /// grab stance would never clear since that only happens via
-        /// Throw(). Punching/AOE-ing a destructible to death while it's
-        /// genuinely being carried can't happen (its collider is already
-        /// disabled for the whole grab), so this only ever affects the
-        /// not-yet-grabbed death window.
+        /// Any hit is lethal for an explosive, frozen or not — unlike
+        /// DestructibleObject, there is no "survive while frozen" branch
+        /// here. The hit itself already applied its frozen-bonus damage
+        /// (Damageable computes/applies damage before firing OnDamaged),
+        /// so this simply detonates.
         /// </summary>
-        private void HandleDeath()
-        {
-            if (col != null)
-            {
-                col.enabled = false;
-            }
-        }
-
         private void HandleDamaged(int amount)
         {
-            if (state != FreezeState.Frozen)
-            {
-                return;
-            }
-
-            // Any damage breaks the ice and frees the object (the hit itself
-            // already applied its frozen-bonus damage, since Damageable
-            // computes/applies damage before firing OnDamaged) — same beat as
-            // EnemyRobot.HandleDamaged.
-            Thaw(shattered: true);
-            Vector2 breakDirection = ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
-            CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
-            HitStop.GetOrCreate()?.Trigger(iceBreakHitStopDuration);
-            squashEffect?.PlaySquash(breakDirection);
+            Explode(gameObject, Vector2.zero);
         }
 
         /// <summary>
@@ -256,8 +224,8 @@ namespace HeroFangame.Interactables
 
         /// <summary>
         /// Releases this object from the player and sends it flying a fixed
-        /// distance along direction, landing after throwDuration regardless
-        /// of what's in the way.
+        /// distance along direction, detonating after throwDuration
+        /// regardless of what's in the way.
         /// </summary>
         public void Throw(Vector2 direction, GameObject thrower)
         {
@@ -287,40 +255,104 @@ namespace HeroFangame.Interactables
 
             transform.position = target;
             throwRoutine = null;
-            Land(direction, thrower);
+            Explode(thrower, direction);
         }
 
-        private void Land(Vector2 direction, GameObject thrower)
+        /// <summary>
+        /// Idempotent (guarded by hasExploded) so a direct call from
+        /// ThrowRoutine landing on the same frame as a lingering OnDamaged
+        /// can never double-fire. Disables the collider immediately (same
+        /// fix as DestructibleObject.HandleDeath) so a mid-explosion re-grab
+        /// can't happen, plays the full game-feel/VFX sequence, splashes
+        /// outward AOE damage/knockback (which can chain into other nearby
+        /// ExplosiveObjects via their own Damageable/OnDamaged pipeline),
+        /// then destroys the GameObject once the burst VFX has had time to
+        /// finish.
+        /// </summary>
+        private void Explode(GameObject source, Vector2 direction)
         {
+            if (hasExploded)
+            {
+                return;
+            }
+            hasExploded = true;
+
             if (col != null)
             {
-                col.enabled = true;
+                col.enabled = false;
             }
 
             if (IsFrozen)
             {
-                // Shatter VFX/sound only here — the shake/hit-stop below
-                // covers the whole landing impact so a frozen throw feels
-                // exactly like an unfrozen one, plus the ice breaking.
                 Thaw(shattered: true);
             }
 
-            damageable.TakeDamage(throwSelfDamage, new DamageInfo(thrower, Vector2.zero, 0f));
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = explosionFlashColor;
+                StartCoroutine(HideSpriteAfterFlash());
+            }
+
+            CameraShake.GetOrCreate()?.Pulse(explosionShakeDuration, explosionShakeAmplitude);
+            HitStop.GetOrCreate()?.Trigger(explosionHitStopDuration);
+
+            SpawnBurstVfxCluster();
 
             AttackUtility.OverlapCircleAndDamageRadial(
                 transform.position,
-                throwImpactRadius,
-                throwAoeLayers,
-                throwAoeDamage,
-                thrower,
-                throwAoeKnockbackForce,
+                explosionRadius,
+                explosionLayers,
+                explosionDamage,
+                source,
+                explosionKnockbackForce,
                 out _,
                 (hit, dir) => hit.GetComponentInParent<HitSquashEffect>()?.PlaySquash(dir),
                 exclude: col);
 
-            CameraShake.GetOrCreate()?.Pulse(throwImpactShakeDuration, throwImpactShakeAmplitude);
-            HitStop.GetOrCreate()?.Trigger(throwImpactHitStopDuration);
-            squashEffect?.PlaySquash(direction);
+            StartCoroutine(DestroyAfterDelay(explosionVfxLifetime));
+        }
+
+        /// <summary>
+        /// Spawns 5-6 random picks (repeats allowed) from the 3 burst VFX
+        /// templates as independent clones scattered around the explosion
+        /// center, so a single explosion reads as a dense, layered blast
+        /// instead of one lone particle burst. Clones are detached copies —
+        /// unaffected by this object's own destruction below — and clean
+        /// themselves up on the same timer as the explosion VFX lifetime.
+        /// </summary>
+        private void SpawnBurstVfxCluster()
+        {
+            if (explosionBurstVfx == null || explosionBurstVfx.Length == 0)
+            {
+                return;
+            }
+
+            int count = Random.Range(minBurstVfxSpawnCount, maxBurstVfxSpawnCount + 1);
+            for (int i = 0; i < count; i++)
+            {
+                var template = explosionBurstVfx[Random.Range(0, explosionBurstVfx.Length)];
+                if (template == null)
+                {
+                    continue;
+                }
+
+                Vector2 offset = Random.insideUnitCircle * burstVfxClusterRadius;
+                var clone = Instantiate(template, transform.position + (Vector3)offset, template.transform.rotation);
+                clone.Play();
+                Destroy(clone.gameObject, explosionVfxLifetime);
+            }
+        }
+
+        private IEnumerator HideSpriteAfterFlash()
+        {
+            yield return new WaitForSeconds(explosionFlashDuration);
+            spriteRenderer.enabled = false;
+        }
+
+        private IEnumerator DestroyAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            Destroy(gameObject);
         }
     }
 }
