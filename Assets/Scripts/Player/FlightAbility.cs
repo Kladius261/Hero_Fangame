@@ -86,6 +86,7 @@ namespace HeroFangame.Player
         [SerializeField] private ParticleSystem flightLandingVFX;
         [SerializeField] private ParticleSystem flightCrashVFX;
         [SerializeField] private ParticleSystem flightChargeDebrisVFX;
+        [SerializeField] private ShockwaveEffect flightChargeShockwaveVFX;
 
         private PlayerInputHandler input;
         private PlayerController controller;
@@ -307,6 +308,7 @@ namespace HeroFangame.Player
             }
 
             PlayChargeDebris(collision.GetContact(0).point);
+            flightChargeShockwaveVFX?.PlayAt(collision.GetContact(0).point);
             EndCharge();
         }
 
