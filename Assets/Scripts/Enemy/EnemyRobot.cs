@@ -1,13 +1,16 @@
+using System.Collections;
 using UnityEngine;
 using HeroFangame.Camera;
+using HeroFangame.Combat;
 using HeroFangame.Core;
+using HeroFangame.Interactables;
 
 namespace HeroFangame.Enemy
 {
     /// <summary>
-    /// Basic robot: Wander / Frozen / Dead state machine. Ignores the
-    /// player entirely and roams the level in random directions, changing
-    /// heading every minWanderInterval-maxWanderInterval seconds and
+    /// Basic robot: Wander / Frozen / Dead / Grabbed / Thrown state machine.
+    /// Ignores the player entirely and roams the level in random directions,
+    /// changing heading every minWanderInterval-maxWanderInterval seconds and
     /// bouncing off walls/obstacles (reflecting off the contact normal,
     /// with a little jitter to avoid stable ping-pong loops at corners).
     /// It never reacts to the player, even when attacked or bumped into.
@@ -34,12 +37,23 @@ namespace HeroFangame.Enemy
     /// the player instead of being overwritten by wander steering on the
     /// very next physics step. Requires Damageable + DamageFlashAndDestroy
     /// on the same GameObject.
+    ///
+    /// Also grabbable/throwable (IGrabbable), mirroring DestructibleObject:
+    /// while grabbed it's parented onto the player (collider disabled) same
+    /// as any other grabbable; on throw it flies a fixed distance/duration
+    /// like a destructible (using rb.position rather than transform.position
+    /// to move the Rigidbody2D, consistent with the freeze knockback pop
+    /// above) and, on landing, takes self-damage and deals the same
+    /// Destructible-style outward AOE damage/knockback. Unlike a
+    /// destructible prop, a thrown robot that survives the landing hit
+    /// simply resumes wandering (with a freshly-picked direction) instead of
+    /// staying put.
     /// </summary>
     [RequireComponent(typeof(Damageable))]
     [RequireComponent(typeof(Rigidbody2D))]
-    public class EnemyRobot : MonoBehaviour, IFreezable, IDamageModifier
+    public class EnemyRobot : MonoBehaviour, IFreezable, IDamageModifier, IGrabbable
     {
-        private enum State { Wander, Frozen, Dead }
+        private enum State { Wander, Frozen, Dead, Grabbed, Thrown }
 
         [Header("Wander")]
         [SerializeField] private Transform player;
@@ -60,10 +74,26 @@ namespace HeroFangame.Enemy
         [SerializeField] private float freezeShakeDuration = 0.12f;
         [SerializeField] private float iceBreakHitStopDuration = 0.1f;
 
+        [Header("Grab")]
+        [SerializeField] private Vector3 grabLocalOffset = new Vector3(0f, 0.9f, 0f);
+
+        [Header("Throw")]
+        [SerializeField] private float throwDistance = 6f;
+        [SerializeField] private float throwDuration = 0.25f;
+        [SerializeField] private float throwImpactRadius = 2.5f;
+        [SerializeField] private int throwSelfDamage = 3;
+        [SerializeField] private int throwAoeDamage = 1;
+        [SerializeField] private float throwAoeKnockbackForce = 8f;
+        [SerializeField] private LayerMask throwAoeLayers;
+        [SerializeField] private float throwImpactShakeDuration = 0.15f;
+        [SerializeField] private float throwImpactShakeAmplitude = 1.75f;
+        [SerializeField] private float throwImpactHitStopDuration = 0.08f;
+
         private Rigidbody2D rb;
         private SpriteRenderer spriteRenderer;
         private Damageable damageable;
         private HitSquashEffect squashEffect;
+        private Collider2D col;
 
         private State state = State.Wander;
         private float freezeExposure;
@@ -71,8 +101,10 @@ namespace HeroFangame.Enemy
         private float knockbackTimeRemaining;
         private Vector2 wanderDirection;
         private float wanderTimer;
+        private Coroutine throwRoutine;
 
         public bool IsFrozen => state == State.Frozen;
+        public bool IsGrabbed => state == State.Grabbed;
 
         private void Awake()
         {
@@ -88,6 +120,7 @@ namespace HeroFangame.Enemy
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             damageable = GetComponent<Damageable>();
             squashEffect = GetComponent<HitSquashEffect>();
+            col = GetComponent<Collider2D>();
 
             if (spriteRenderer != null)
             {
@@ -124,7 +157,7 @@ namespace HeroFangame.Enemy
 
         private void Update()
         {
-            if (state == State.Dead)
+            if (state == State.Dead || state == State.Grabbed || state == State.Thrown)
             {
                 return;
             }
@@ -262,7 +295,7 @@ namespace HeroFangame.Enemy
 
         public void AddFreezeExposure(float amount, bool isNewActivation)
         {
-            if (state == State.Dead)
+            if (state == State.Dead || state == State.Grabbed || state == State.Thrown)
             {
                 return;
             }
@@ -358,10 +391,134 @@ namespace HeroFangame.Enemy
             return state == State.Frozen ? frozenDamageMultiplier : 1f;
         }
 
+        /// <summary>
+        /// Disabling the collider immediately on death closes the same
+        /// grab-race window DestructibleObject.HandleDeath guards against:
+        /// without this, PlayerGrabAbility could grab an already-dying
+        /// robot during DamageFlashAndDestroy's shrink-out.
+        /// </summary>
         private void HandleDeath()
         {
             state = State.Dead;
             rb.linearVelocity = Vector2.zero;
+            if (col != null)
+            {
+                col.enabled = false;
+            }
+        }
+
+        /// <summary>
+        /// Mounts this robot onto the player: disables its collider (so it
+        /// doesn't block the player it's riding on top of) and parents it to
+        /// the player's transform at a fixed carry offset. Switched to
+        /// Kinematic for the duration of the grab — a Dynamic Rigidbody2D's
+        /// world position is owned by the physics engine each step, so
+        /// parenting it alone does NOT make it follow a moving parent (it
+        /// just stays put in world space where it was grabbed, even with
+        /// velocity zeroed). Kinematic bodies, by contrast, are driven by
+        /// their transform, so once parented they track the carrier every
+        /// frame like a true passenger. Switched back to Dynamic in Throw().
+        /// </summary>
+        public void BeginGrab(Transform carrier)
+        {
+            state = State.Grabbed;
+            rb.linearVelocity = Vector2.zero;
+            rb.bodyType = RigidbodyType2D.Kinematic;
+            if (col != null)
+            {
+                col.enabled = false;
+            }
+            transform.SetParent(carrier, worldPositionStays: false);
+            transform.localPosition = grabLocalOffset;
+            transform.localRotation = Quaternion.identity;
+        }
+
+        /// <summary>
+        /// Releases this robot from the player and sends it flying a fixed
+        /// distance along direction, landing after throwDuration regardless
+        /// of what's in the way — same fixed-arc convention as
+        /// DestructibleObject.Throw, but driven via rb.position (this object
+        /// has a Rigidbody2D) rather than transform.position. Restores the
+        /// Dynamic body type (set to Kinematic by BeginGrab) so the robot
+        /// participates in physics collisions again once it lands.
+        /// </summary>
+        public void Throw(Vector2 direction, GameObject thrower)
+        {
+            state = State.Thrown;
+            rb.bodyType = RigidbodyType2D.Dynamic;
+            transform.SetParent(null, worldPositionStays: true);
+
+            Vector2 dir = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
+            if (throwRoutine != null)
+            {
+                StopCoroutine(throwRoutine);
+            }
+            throwRoutine = StartCoroutine(ThrowRoutine(dir, thrower));
+        }
+
+        private IEnumerator ThrowRoutine(Vector2 direction, GameObject thrower)
+        {
+            Vector2 start = transform.position;
+            Vector2 target = LevelBounds.Clamp(start + direction * throwDistance);
+
+            float t = 0f;
+            while (t < throwDuration)
+            {
+                t += Time.deltaTime;
+                rb.position = Vector2.Lerp(start, target, Mathf.Clamp01(t / throwDuration));
+                yield return null;
+            }
+
+            rb.position = target;
+            throwRoutine = null;
+            Land(direction, thrower);
+        }
+
+        /// <summary>
+        /// Same landing beat as DestructibleObject.Land (self-damage, then
+        /// Destructible-style outward AOE damage/knockback, shake/hit-stop/
+        /// squash), except a robot that survives the self-damage resumes
+        /// wandering with a freshly-picked direction instead of staying put
+        /// — a thrown enemy simply continues moving around afterward.
+        /// </summary>
+        private void Land(Vector2 direction, GameObject thrower)
+        {
+            if (col != null)
+            {
+                col.enabled = true;
+            }
+
+            if (IsFrozen)
+            {
+                Thaw(shattered: true);
+            }
+
+            damageable.TakeDamage(throwSelfDamage, new DamageInfo(thrower, Vector2.zero, 0f));
+
+            AttackUtility.OverlapCircleAndDamageRadial(
+                transform.position,
+                throwImpactRadius,
+                throwAoeLayers,
+                throwAoeDamage,
+                thrower,
+                throwAoeKnockbackForce,
+                out _,
+                (hit, dir) => hit.GetComponentInParent<HitSquashEffect>()?.PlaySquash(dir),
+                exclude: col);
+
+            CameraShake.GetOrCreate()?.Pulse(throwImpactShakeDuration, throwImpactShakeAmplitude);
+            HitStop.GetOrCreate()?.Trigger(throwImpactHitStopDuration);
+            squashEffect?.PlaySquash(direction);
+
+            if (damageable.IsDead)
+            {
+                // HandleDeath already fired (disabling the collider again)
+                // — don't resume wandering into the death sequence.
+                return;
+            }
+
+            state = State.Wander;
+            PickNewWanderDirection();
         }
     }
 }

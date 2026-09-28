@@ -24975,7 +24975,7 @@ MonoBehaviour:
   grabRange: 1.5
   grabbableLayers:
     serializedVersion: 2
-    m_Bits: 1024
+    m_Bits: 1536
 --- !u!1 &5732415952229131395
 GameObject:
   m_ObjectHideFlags: 0

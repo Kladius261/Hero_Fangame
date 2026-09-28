@@ -7386,6 +7386,19 @@ MonoBehaviour:
   freezeKnockbackDistance: 0.4
   freezeShakeDuration: 0.12
   iceBreakHitStopDuration: 0.1
+  grabLocalOffset: {x: 0, y: 0.9, z: 0}
+  throwDistance: 6
+  throwDuration: 0.25
+  throwImpactRadius: 2.5
+  throwSelfDamage: 3
+  throwAoeDamage: 1
+  throwAoeKnockbackForce: 8
+  throwAoeLayers:
+    serializedVersion: 2
+    m_Bits: 1536
+  throwImpactShakeDuration: 0.15
+  throwImpactShakeAmplitude: 1.75
+  throwImpactHitStopDuration: 0.08
 --- !u!114 &2161864642756963197
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -222,7 +222,8 @@
       "Bash(mkdir -p /tmp/flightbug_frames)",
       "Bash(ffmpeg -y -i \"/c/Users/gohun/OneDrive/문서/oCam/녹화_2026_09_28_23_13_51_674.mp4\" -vf \"fps=4\" /tmp/flightbug_frames/frame_%03d.png)",
       "Bash(mkdir -p /tmp/flightbug_frames2)",
-      "Bash(ffmpeg -y -i \"/c/Users/gohun/OneDrive/문서/oCam/녹화_2026_09_28_23_13_51_674.mp4\" -vf \"fps=10\" /tmp/flightbug_frames2/f_%03d.png)"
+      "Bash(ffmpeg -y -i \"/c/Users/gohun/OneDrive/문서/oCam/녹화_2026_09_28_23_13_51_674.mp4\" -vf \"fps=10\" /tmp/flightbug_frames2/f_%03d.png)",
+      "Bash(grep -n -A3 \"PlayerGrabAbility$\" \"C:\\\\Users\\\\gohun\\\\OneDrive\\\\Desktop\\\\UnityProject\\\\Hero_Fangame\\\\Assets\\\\Prefabs\\\\Player\\\\Player.prefab\")"
     ]
   }
 }
