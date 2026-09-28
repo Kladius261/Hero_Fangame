@@ -54,6 +54,12 @@ namespace HeroFangame.Player
         [SerializeField] private float liftoffShakeAmplitude = 1.5f;
         [SerializeField] private float landingShakeDuration = 0.12f;
         [SerializeField] private float landingShakeAmplitude = 1.25f;
+        [SerializeField] private float liftoffHapticDuration = 0.15f;
+        [SerializeField] private float liftoffHapticLowFrequency = 0.4f;
+        [SerializeField] private float liftoffHapticHighFrequency = 0.2f;
+        [SerializeField] private float landingHapticDuration = 0.15f;
+        [SerializeField] private float landingHapticLowFrequency = 0.5f;
+        [SerializeField] private float landingHapticHighFrequency = 0.2f;
 
         [Header("Landing Impact")]
         [Tooltip("Mirrors the liftoff AOE pulse (damage/knockback/squash) at the landing spot.")]
@@ -82,6 +88,9 @@ namespace HeroFangame.Player
         [SerializeField] private float chargeCrashShakeDuration = 0.15f;
         [SerializeField] private float chargeCrashShakeAmplitude = 1.75f;
         [SerializeField] private float chargeCrashHitStopDuration = 0.08f;
+        [SerializeField] private float chargeCrashHapticDuration = 0.2f;
+        [SerializeField] private float chargeCrashHapticLowFrequency = 0.7f;
+        [SerializeField] private float chargeCrashHapticHighFrequency = 0.5f;
         [SerializeField] private float playerFlashDuration = 0.1f;
         [Tooltip("After a Charge ends the player returns to hovering (landing is no longer forced). This briefly blocks a new double-tap from immediately chaining into another Charge.")]
         [SerializeField] private float chargeCooldown = 0.4f;
@@ -254,6 +263,7 @@ namespace HeroFangame.Player
             hoverBobOffset = 0f;
 
             CameraShake.GetOrCreate()?.Pulse(liftoffShakeDuration, liftoffShakeAmplitude);
+            Haptics.GetOrCreate()?.Pulse(liftoffHapticDuration, liftoffHapticLowFrequency, liftoffHapticHighFrequency);
             playerSquash?.PlaySquash(Vector2.up);
             flightPropulsionVFX?.Play();
             flightAuraVFX?.Play();
@@ -293,6 +303,7 @@ namespace HeroFangame.Player
             flightLandingVFX?.Play();
             playerSquash?.PlaySquash(Vector2.right);
             CameraShake.GetOrCreate()?.Pulse(landingShakeDuration, landingShakeAmplitude);
+            Haptics.GetOrCreate()?.Pulse(landingHapticDuration, landingHapticLowFrequency, landingHapticHighFrequency);
 
             // Same radial knockback/damage/squash treatment as liftoff, so
             // landing reads as an equally impactful shockwave on anything
@@ -415,6 +426,7 @@ namespace HeroFangame.Player
 
             CameraShake.GetOrCreate()?.Pulse(chargeCrashShakeDuration, chargeCrashShakeAmplitude);
             HitStop.GetOrCreate()?.Trigger(chargeCrashHitStopDuration);
+            Haptics.GetOrCreate()?.Pulse(chargeCrashHapticDuration, chargeCrashHapticLowFrequency, chargeCrashHapticHighFrequency);
 
             PlayChargeAoe(collision.GetContact(0).point, collision.collider);
         }
@@ -424,6 +436,7 @@ namespace HeroFangame.Player
             playerFlash?.Flash(Color.white, playerFlashDuration);
             CameraShake.GetOrCreate()?.Pulse(chargeCrashShakeDuration, chargeCrashShakeAmplitude);
             HitStop.GetOrCreate()?.Trigger(chargeCrashHitStopDuration);
+            Haptics.GetOrCreate()?.Pulse(chargeCrashHapticDuration, chargeCrashHapticLowFrequency, chargeCrashHapticHighFrequency);
 
             PlayChargeAoe(collision.GetContact(0).point, collision.collider);
         }

@@ -102,6 +102,26 @@ namespace HeroFangame.Combat
             return colliderBuffer;
         }
 
+        /// <summary>
+        /// Query-only variant of OverlapBoxAndDamage: returns the hit
+        /// colliders without applying any damage, so a caller can act on the
+        /// hit set first (e.g. Freeze Breath applying freeze exposure) and
+        /// apply damage afterward via <see cref="ApplyDamage"/> — needed so
+        /// an IFreezable that also dies from a single point of damage (like
+        /// ExplosiveObject) can see its freeze exposure land before the
+        /// paired chip damage would otherwise detonate it.
+        /// </summary>
+        public static Collider2D[] OverlapBox(
+            Vector2 center,
+            Vector2 size,
+            float angle,
+            LayerMask mask,
+            out int hitCount)
+        {
+            hitCount = Physics2D.OverlapBoxNonAlloc(center, size, angle, colliderBuffer, mask);
+            return colliderBuffer;
+        }
+
         public static Collider2D[] OverlapCircleAndDamage(
             Vector2 center,
             float radius,
@@ -169,7 +189,7 @@ namespace HeroFangame.Combat
             return colliderBuffer;
         }
 
-        private static void ApplyDamage(
+        public static void ApplyDamage(
             Collider2D[] hits,
             int hitCount,
             int damage,

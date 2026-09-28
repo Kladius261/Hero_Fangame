@@ -39,6 +39,11 @@ namespace HeroFangame.Player
         [Header("Knockback")]
         [SerializeField] private float knockbackForce = 6f;
 
+        [Header("Haptics")]
+        [Tooltip("Continuous rumble while the beam is firing (tap pulse or held), mirroring the continuous camera shake toggle.")]
+        [SerializeField] private float beamHapticLowFrequency = 0.15f;
+        [SerializeField] private float beamHapticHighFrequency = 0.25f;
+
         [Header("Power Cost")]
         [SerializeField] private float tapPowerCost = 10f;
         [SerializeField] private float holdPowerCostPerSecond = 30f;
@@ -293,6 +298,7 @@ namespace HeroFangame.Player
                 cameraShake = CameraShake.GetOrCreate();
             }
             cameraShake?.SetShaking(active);
+            Haptics.GetOrCreate()?.SetContinuous(active, beamHapticLowFrequency, beamHapticHighFrequency);
         }
 
 #if UNITY_EDITOR

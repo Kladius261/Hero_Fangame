@@ -41,6 +41,12 @@ namespace HeroFangame.Interactables
         [SerializeField] private float freezeKnockbackDistance = 0.4f;
         [SerializeField] private float freezeShakeDuration = 0.12f;
         [SerializeField] private float iceBreakHitStopDuration = 0.1f;
+        [SerializeField] private float freezeHapticDuration = 0.15f;
+        [SerializeField] private float freezeHapticLowFrequency = 0.4f;
+        [SerializeField] private float freezeHapticHighFrequency = 0.1f;
+        [SerializeField] private float iceBreakHapticDuration = 0.12f;
+        [SerializeField] private float iceBreakHapticLowFrequency = 0.2f;
+        [SerializeField] private float iceBreakHapticHighFrequency = 0.4f;
 
         [Header("Grab")]
         [SerializeField] private Vector3 grabLocalOffset = new Vector3(0f, 0.9f, 0f);
@@ -56,6 +62,9 @@ namespace HeroFangame.Interactables
         [SerializeField] private float throwImpactShakeDuration = 0.15f;
         [SerializeField] private float throwImpactShakeAmplitude = 1.75f;
         [SerializeField] private float throwImpactHitStopDuration = 0.08f;
+        [SerializeField] private float throwImpactHapticDuration = 0.15f;
+        [SerializeField] private float throwImpactHapticLowFrequency = 0.5f;
+        [SerializeField] private float throwImpactHapticHighFrequency = 0.3f;
 
         private Damageable damageable;
         private SpriteRenderer spriteRenderer;
@@ -149,6 +158,7 @@ namespace HeroFangame.Interactables
             }
             freezeVisual?.PlayFreezeIn();
             CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
+            Haptics.GetOrCreate()?.Pulse(freezeHapticDuration, freezeHapticLowFrequency, freezeHapticHighFrequency);
             ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
         }
 
@@ -205,6 +215,7 @@ namespace HeroFangame.Interactables
             Vector2 breakDirection = ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
             CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
             HitStop.GetOrCreate()?.Trigger(iceBreakHitStopDuration);
+            Haptics.GetOrCreate()?.Pulse(iceBreakHapticDuration, iceBreakHapticLowFrequency, iceBreakHapticHighFrequency);
             squashEffect?.PlaySquash(breakDirection);
         }
 
@@ -320,6 +331,7 @@ namespace HeroFangame.Interactables
 
             CameraShake.GetOrCreate()?.Pulse(throwImpactShakeDuration, throwImpactShakeAmplitude);
             HitStop.GetOrCreate()?.Trigger(throwImpactHitStopDuration);
+            Haptics.GetOrCreate()?.Pulse(throwImpactHapticDuration, throwImpactHapticLowFrequency, throwImpactHapticHighFrequency);
             squashEffect?.PlaySquash(direction);
         }
     }

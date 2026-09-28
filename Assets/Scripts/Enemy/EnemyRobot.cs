@@ -73,6 +73,12 @@ namespace HeroFangame.Enemy
         [SerializeField] private float freezeKnockbackDistance = 0.4f;
         [SerializeField] private float freezeShakeDuration = 0.12f;
         [SerializeField] private float iceBreakHitStopDuration = 0.1f;
+        [SerializeField] private float freezeHapticDuration = 0.15f;
+        [SerializeField] private float freezeHapticLowFrequency = 0.4f;
+        [SerializeField] private float freezeHapticHighFrequency = 0.1f;
+        [SerializeField] private float iceBreakHapticDuration = 0.12f;
+        [SerializeField] private float iceBreakHapticLowFrequency = 0.2f;
+        [SerializeField] private float iceBreakHapticHighFrequency = 0.4f;
 
         [Header("Grab")]
         [SerializeField] private Vector3 grabLocalOffset = new Vector3(0f, 0.9f, 0f);
@@ -88,6 +94,9 @@ namespace HeroFangame.Enemy
         [SerializeField] private float throwImpactShakeDuration = 0.15f;
         [SerializeField] private float throwImpactShakeAmplitude = 1.75f;
         [SerializeField] private float throwImpactHitStopDuration = 0.08f;
+        [SerializeField] private float throwImpactHapticDuration = 0.15f;
+        [SerializeField] private float throwImpactHapticLowFrequency = 0.5f;
+        [SerializeField] private float throwImpactHapticHighFrequency = 0.3f;
 
         private Rigidbody2D rb;
         private SpriteRenderer spriteRenderer;
@@ -102,6 +111,7 @@ namespace HeroFangame.Enemy
         private Vector2 wanderDirection;
         private float wanderTimer;
         private Coroutine throwRoutine;
+        private bool wasFrozenWhenGrabbed;
 
         public bool IsFrozen => state == State.Frozen;
         public bool IsGrabbed => state == State.Grabbed;
@@ -287,6 +297,7 @@ namespace HeroFangame.Enemy
                 Vector2 breakDirection = ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
                 CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
                 HitStop.GetOrCreate()?.Trigger(iceBreakHitStopDuration);
+                Haptics.GetOrCreate()?.Pulse(iceBreakHapticDuration, iceBreakHapticLowFrequency, iceBreakHapticHighFrequency);
                 squashEffect?.PlaySquash(breakDirection);
             }
 
@@ -333,6 +344,7 @@ namespace HeroFangame.Enemy
             }
             freezeVisual?.PlayFreezeIn();
             CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
+            Haptics.GetOrCreate()?.Pulse(freezeHapticDuration, freezeHapticLowFrequency, freezeHapticHighFrequency);
         }
 
         /// <summary>
@@ -418,9 +430,15 @@ namespace HeroFangame.Enemy
         /// velocity zeroed). Kinematic bodies, by contrast, are driven by
         /// their transform, so once parented they track the carrier every
         /// frame like a true passenger. Switched back to Dynamic in Throw().
+        /// Records whether the robot was Frozen at the moment of the grab
+        /// (state is about to be overwritten to Grabbed, which would
+        /// otherwise silently erase that fact) so Land() can still break
+        /// the ice on impact even though state no longer reads Frozen by
+        /// the time the throw lands.
         /// </summary>
         public void BeginGrab(Transform carrier)
         {
+            wasFrozenWhenGrabbed = state == State.Frozen;
             state = State.Grabbed;
             rb.linearVelocity = Vector2.zero;
             rb.bodyType = RigidbodyType2D.Kinematic;
@@ -488,8 +506,9 @@ namespace HeroFangame.Enemy
                 col.enabled = true;
             }
 
-            if (IsFrozen)
+            if (wasFrozenWhenGrabbed)
             {
+                wasFrozenWhenGrabbed = false;
                 Thaw(shattered: true);
             }
 
@@ -508,6 +527,7 @@ namespace HeroFangame.Enemy
 
             CameraShake.GetOrCreate()?.Pulse(throwImpactShakeDuration, throwImpactShakeAmplitude);
             HitStop.GetOrCreate()?.Trigger(throwImpactHitStopDuration);
+            Haptics.GetOrCreate()?.Pulse(throwImpactHapticDuration, throwImpactHapticLowFrequency, throwImpactHapticHighFrequency);
             squashEffect?.PlaySquash(direction);
 
             if (damageable.IsDead)

@@ -192,22 +192,21 @@ namespace HeroFangame.Player
             Vector2 origin = (Vector2)transform.position + dir * (coneOffset + size.x * 0.5f);
             float angle = Vector2.SignedAngle(Vector2.right, dir);
 
-            var hits = AttackUtility.OverlapBoxAndDamage(
-                origin,
-                size,
-                angle,
-                hittableLayers,
-                damage,
-                gameObject,
-                dir,
-                knockbackForce: 0f,
-                out int hitCount);
+            // Freeze exposure is applied before damage (unlike Heat
+            // Vision/Punch, which only ever deal damage) so an IFreezable
+            // that detonates from a single point of damage (ExplosiveObject)
+            // sees its exposure land — and can flag itself to absorb the
+            // paired chip damage — before that damage would otherwise
+            // destroy it on contact, before it ever gets a chance to freeze.
+            var hits = AttackUtility.OverlapBox(origin, size, angle, hittableLayers, out int hitCount);
 
             for (int i = 0; i < hitCount; i++)
             {
-                var freezable = hits[i].GetComponentInParent<IFreezable>();
+                var freezable = hits[i]?.GetComponentInParent<IFreezable>();
                 freezable?.AddFreezeExposure(exposure, isNewActivation);
             }
+
+            AttackUtility.ApplyDamage(hits, hitCount, damage, gameObject, dir, knockbackForce: 0f);
 
             if (!isConeActive)
             {

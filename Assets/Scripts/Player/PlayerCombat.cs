@@ -31,6 +31,9 @@ namespace HeroFangame.Player
         [SerializeField] private float hitShakeDuration = 0.08f;
         [SerializeField] private float hitShakeAmplitudeMultiplier = 1.25f;
         [SerializeField] private float hitStopDuration = 0.1f;
+        [SerializeField] private float hitHapticDuration = 0.1f;
+        [SerializeField] private float hitHapticLowFrequency = 0.3f;
+        [SerializeField] private float hitHapticHighFrequency = 0.5f;
 
         private PlayerInputHandler input;
         private PlayerController controller;
@@ -115,6 +118,7 @@ namespace HeroFangame.Player
             {
                 CameraShake.GetOrCreate()?.Pulse(hitShakeDuration, hitShakeAmplitudeMultiplier);
                 HitStop.GetOrCreate()?.Trigger(hitStopDuration);
+                Haptics.GetOrCreate()?.Pulse(hitHapticDuration, hitHapticLowFrequency, hitHapticHighFrequency);
             }
 
             comboStep = (comboStep + 1) % Mathf.Max(1, comboLength);
