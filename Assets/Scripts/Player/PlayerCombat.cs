@@ -32,8 +32,8 @@ namespace HeroFangame.Player
         [SerializeField] private float hitShakeAmplitudeMultiplier = 1.25f;
         [SerializeField] private float hitStopDuration = 0.1f;
         [SerializeField] private float hitHapticDuration = 0.1f;
-        [SerializeField] private float hitHapticLowFrequency = 0.3f;
-        [SerializeField] private float hitHapticHighFrequency = 0.5f;
+        [SerializeField] private float hitHapticLowFrequency = 0.6f;
+        [SerializeField] private float hitHapticHighFrequency = 1f;
 
         private PlayerInputHandler input;
         private PlayerController controller;

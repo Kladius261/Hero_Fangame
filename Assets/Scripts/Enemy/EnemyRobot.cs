@@ -74,11 +74,11 @@ namespace HeroFangame.Enemy
         [SerializeField] private float freezeShakeDuration = 0.12f;
         [SerializeField] private float iceBreakHitStopDuration = 0.1f;
         [SerializeField] private float freezeHapticDuration = 0.15f;
-        [SerializeField] private float freezeHapticLowFrequency = 0.4f;
-        [SerializeField] private float freezeHapticHighFrequency = 0.1f;
+        [SerializeField] private float freezeHapticLowFrequency = 0.8f;
+        [SerializeField] private float freezeHapticHighFrequency = 0.2f;
         [SerializeField] private float iceBreakHapticDuration = 0.12f;
-        [SerializeField] private float iceBreakHapticLowFrequency = 0.2f;
-        [SerializeField] private float iceBreakHapticHighFrequency = 0.4f;
+        [SerializeField] private float iceBreakHapticLowFrequency = 0.4f;
+        [SerializeField] private float iceBreakHapticHighFrequency = 0.8f;
 
         [Header("Grab")]
         [SerializeField] private Vector3 grabLocalOffset = new Vector3(0f, 0.9f, 0f);
@@ -95,8 +95,8 @@ namespace HeroFangame.Enemy
         [SerializeField] private float throwImpactShakeAmplitude = 1.75f;
         [SerializeField] private float throwImpactHitStopDuration = 0.08f;
         [SerializeField] private float throwImpactHapticDuration = 0.15f;
-        [SerializeField] private float throwImpactHapticLowFrequency = 0.5f;
-        [SerializeField] private float throwImpactHapticHighFrequency = 0.3f;
+        [SerializeField] private float throwImpactHapticLowFrequency = 1f;
+        [SerializeField] private float throwImpactHapticHighFrequency = 0.6f;
 
         private Rigidbody2D rb;
         private SpriteRenderer spriteRenderer;

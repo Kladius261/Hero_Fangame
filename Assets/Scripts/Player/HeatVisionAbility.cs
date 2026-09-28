@@ -41,8 +41,8 @@ namespace HeroFangame.Player
 
         [Header("Haptics")]
         [Tooltip("Continuous rumble while the beam is firing (tap pulse or held), mirroring the continuous camera shake toggle.")]
-        [SerializeField] private float beamHapticLowFrequency = 0.15f;
-        [SerializeField] private float beamHapticHighFrequency = 0.25f;
+        [SerializeField] private float beamHapticLowFrequency = 0.3f;
+        [SerializeField] private float beamHapticHighFrequency = 0.5f;
 
         [Header("Power Cost")]
         [SerializeField] private float tapPowerCost = 10f;

@@ -194,16 +194,30 @@ namespace HeroFangame.Player
 
             // Freeze exposure is applied before damage (unlike Heat
             // Vision/Punch, which only ever deal damage) so an IFreezable
-            // that detonates from a single point of damage (ExplosiveObject)
-            // sees its exposure land — and can flag itself to absorb the
-            // paired chip damage — before that damage would otherwise
-            // destroy it on contact, before it ever gets a chance to freeze.
+            // that also implements IFreezeDamageAbsorber (ExplosiveObject)
+            // can veto this same hit's accompanying chip damage right after
+            // its exposure lands — otherwise a one-hit-kill target would be
+            // destroyed by the chip damage before it ever got a chance to
+            // freeze. Absorbed hits are nulled out of the shared buffer so
+            // ApplyDamage's null-check skips them entirely.
             var hits = AttackUtility.OverlapBox(origin, size, angle, hittableLayers, out int hitCount);
 
             for (int i = 0; i < hitCount; i++)
             {
-                var freezable = hits[i]?.GetComponentInParent<IFreezable>();
+                var hit = hits[i];
+                if (hit == null)
+                {
+                    continue;
+                }
+
+                var freezable = hit.GetComponentInParent<IFreezable>();
                 freezable?.AddFreezeExposure(exposure, isNewActivation);
+
+                var absorber = hit.GetComponentInParent<IFreezeDamageAbsorber>();
+                if (absorber != null && absorber.ConsumeDamageAbsorption())
+                {
+                    hits[i] = null;
+                }
             }
 
             AttackUtility.ApplyDamage(hits, hitCount, damage, gameObject, dir, knockbackForce: 0f);

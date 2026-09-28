@@ -9,16 +9,21 @@ namespace HeroFangame.Interactables
 {
     /// <summary>
     /// Grabbable/throwable/freezable prop that detonates on a single hit
-    /// (from a punch, Heat Vision, Freeze Breath tick, a throw landing, or
-    /// another explosion's AOE), unlike DestructibleObject which survives
-    /// several hits. Freeze behavior mirrors DestructibleObject/EnemyRobot
-    /// exactly (reversible exposure/toggle-thaw), but there is no "survive
-    /// a hit while frozen" branch here — any hit is lethal either way, so
-    /// HandleDamaged always detonates; being frozen only adds a shatter
-    /// flourish on top of the explosion.
+    /// (from a punch, Heat Vision, Freeze Breath, a throw landing, an AOE
+    /// splash, or another explosion's chain reaction), unlike
+    /// DestructibleObject which survives several hits. Can only ever be
+    /// frozen once: Freeze Breath's chip damage on the hit(s) that build up
+    /// to that freeze is vetoed via IFreezeDamageAbsorber (so the explosive
+    /// survives long enough to actually freeze), but once frozen, there is
+    /// no toggle-thaw — a further Freeze Breath activation detonates it
+    /// outright, same as any other damage source. There is no "survive a
+    /// hit while frozen" branch: every other damage source (punch, Heat
+    /// Vision, AOE, another explosion) always detonates on contact via
+    /// HandleDamaged; being frozen only adds a shatter flourish on top of
+    /// the explosion.
     /// </summary>
     [RequireComponent(typeof(Damageable))]
-    public class ExplosiveObject : MonoBehaviour, IFreezable, IDamageModifier, IGrabbable
+    public class ExplosiveObject : MonoBehaviour, IFreezable, IDamageModifier, IGrabbable, IFreezeDamageAbsorber
     {
         private enum FreezeState { Normal, Frozen }
 
@@ -31,8 +36,8 @@ namespace HeroFangame.Interactables
         [SerializeField] private float freezeKnockbackDistance = 0.4f;
         [SerializeField] private float freezeShakeDuration = 0.12f;
         [SerializeField] private float freezeHapticDuration = 0.15f;
-        [SerializeField] private float freezeHapticLowFrequency = 0.4f;
-        [SerializeField] private float freezeHapticHighFrequency = 0.1f;
+        [SerializeField] private float freezeHapticLowFrequency = 0.8f;
+        [SerializeField] private float freezeHapticHighFrequency = 0.2f;
 
         [Header("Grab")]
         [SerializeField] private Vector3 grabLocalOffset = new Vector3(0f, 0.9f, 0f);
@@ -50,8 +55,8 @@ namespace HeroFangame.Interactables
         [SerializeField] private float explosionShakeAmplitude = 1.75f;
         [SerializeField] private float explosionHitStopDuration = 0.08f;
         [SerializeField] private float explosionHapticDuration = 0.2f;
-        [SerializeField] private float explosionHapticLowFrequency = 0.6f;
-        [SerializeField] private float explosionHapticHighFrequency = 0.4f;
+        [SerializeField] private float explosionHapticLowFrequency = 1f;
+        [SerializeField] private float explosionHapticHighFrequency = 0.8f;
         [SerializeField] private Color explosionFlashColor = Color.white;
         [SerializeField] private float explosionFlashDuration = 0.08f;
         [SerializeField] private float explosionVfxLifetime = 0.6f;
@@ -70,7 +75,7 @@ namespace HeroFangame.Interactables
         private Color baseColor;
         private bool isGrabbed;
         private bool hasExploded;
-        private int chilledFrame = -1;
+        private bool pendingDamageAbsorption;
         private Coroutine throwRoutine;
 
         public bool IsFrozen => state == FreezeState.Frozen;
@@ -123,38 +128,49 @@ namespace HeroFangame.Interactables
         {
             if (state == FreezeState.Frozen)
             {
-                // Freeze Breath toggles an already-frozen target: a fresh
-                // press frees it instead of re-freezing it, same convention
-                // as EnemyRobot/DestructibleObject. Marked the same way as
-                // the freezing path below so the tap's paired chip damage
-                // (applied right after this call returns, same frame — see
-                // FreezeBreathAbility.ApplyCone) thaws it quietly instead of
-                // detonating it.
+                // Explosives can only ever be frozen once: unlike
+                // EnemyRobot/DestructibleObject's toggle-thaw convention, a
+                // fresh Freeze Breath activation on an already-frozen
+                // explosive detonates it instead of quietly freeing it.
                 if (isNewActivation)
                 {
-                    chilledFrame = Time.frameCount;
-                    Thaw(shattered: false);
+                    Explode(gameObject, Vector2.zero);
                 }
                 return;
             }
 
-            // FreezeBreathAbility applies freeze exposure to every hit
-            // before dealing that same attack's damage, specifically so
-            // this can be recorded here first. Without it, HandleDamaged
-            // would treat Freeze Breath's chip damage as a normal lethal
-            // hit and detonate the explosive on contact, before it ever got
-            // a chance to actually freeze. Stamped with the current frame
-            // (rather than a plain bool) so only damage arriving in this
-            // exact same frame is exempted — a hold-tick's exposure (which
-            // carries no damage of its own) must not leave a stale flag
-            // that later absorbs some unrelated punch/Heat Vision hit.
-            chilledFrame = Time.frameCount;
+            // FreezeBreathAbility checks IFreezeDamageAbsorber right after
+            // calling this, on every hit, and vetoes that same hit's chip
+            // damage before it ever reaches Damageable.TakeDamage (see
+            // ConsumeDamageAbsorption below and FreezeBreathAbility.ApplyCone).
+            // Without this, the very first freeze-attempt tap would zero this
+            // object's HP and permanently mark it dead in Damageable before
+            // it ever got a chance to actually freeze.
+            pendingDamageAbsorption = true;
             freezeExposure += amount;
             freezeVisual?.SetChillLevel(freezeExposure / freezeThreshold);
             if (freezeExposure >= freezeThreshold)
             {
                 Freeze();
             }
+        }
+
+        /// <summary>
+        /// One-shot veto for Freeze Breath's chip damage on the exact hit
+        /// that just called AddFreezeExposure this frame — see
+        /// FreezeBreathAbility.ApplyCone, which calls this immediately after
+        /// AddFreezeExposure for each hit and nulls the hit out of its damage
+        /// pass if this returns true. Never left dangling: only ever set
+        /// true inside AddFreezeExposure's own building-up branch, and
+        /// always consumed (reset to false) here in the same synchronous
+        /// call chain, so it can never carry over to absorb some later,
+        /// unrelated attack.
+        /// </summary>
+        public bool ConsumeDamageAbsorption()
+        {
+            bool result = pendingDamageAbsorption;
+            pendingDamageAbsorption = false;
+            return result;
         }
 
         private void Freeze()
@@ -189,25 +205,17 @@ namespace HeroFangame.Interactables
         }
 
         /// <summary>
-        /// Any hit is lethal for an explosive, frozen or not — unlike
-        /// DestructibleObject, there is no "survive while frozen" branch
-        /// here. The hit itself already applied its frozen-bonus damage
-        /// (Damageable computes/applies damage before firing OnDamaged),
-        /// so this simply detonates. The one exception is Freeze Breath's
-        /// own chip damage: AddFreezeExposure (called just before this, same
-        /// frame — see FreezeBreathAbility.ApplyCone) stamps chilledFrame to
-        /// mark that this hit is a freeze attempt, not a real attack —
-        /// without it, an Explosive could never survive long enough to
-        /// actually freeze, since even the gentlest tap would detonate it
-        /// on contact.
+        /// Any hit that actually reaches Damageable.TakeDamage is lethal for
+        /// an explosive, frozen or not — unlike DestructibleObject, there is
+        /// no "survive while frozen" branch here, so this always detonates
+        /// unconditionally. Freeze Breath's own chip damage never reaches
+        /// this point in the first place while a freeze is building up: it's
+        /// vetoed upstream via IFreezeDamageAbsorber (see
+        /// ConsumeDamageAbsorption and FreezeBreathAbility.ApplyCone), so
+        /// there's nothing left to exempt here.
         /// </summary>
         private void HandleDamaged(int amount)
         {
-            if (chilledFrame == Time.frameCount)
-            {
-                return;
-            }
-
             Explode(gameObject, Vector2.zero);
         }
 
