@@ -16,20 +16,33 @@ namespace HeroFangame.Player
     /// PlayerController.IsMovementLocked), so Flight can't be entered
     /// mid-beam/mid-cone — it only becomes available again once the player
     /// releases D/S or the ability force-cuts itself from running out of
-    /// Power. While flying, double-tapping Left or Right
-    /// fires an uninterruptible Charge dash with a ghost trail; once firing,
-    /// holding Up/Down steers the dash diagonally (see AbilityAimController)
-    /// without ever being cancelable. It still ends the instant it hits
-    /// anything (impact feedback + a brief re-charge cooldown), returning to
-    /// a normal hover afterward. Releasing Flight while hovering — whether
-    /// idle or just after a Charge — is what actually triggers landing.
+    /// Power. Flying itself now shares that same Power gauge with Heat
+    /// Vision/Freeze Breath: holding Flight continuously drains Power, and
+    /// running it dry forces an instant landing right where the player ran
+    /// out (same forced-cutoff idea as the other two), locking Flight out
+    /// until a tangible amount regenerates even if Space is still held.
+    /// Charging itself never touches Power. While flying, double-tapping
+    /// Left or Right fires an uninterruptible Charge dash with a ghost
+    /// trail; once firing, holding Up/Down steers the dash diagonally (see
+    /// AbilityAimController) without ever being cancelable. It still ends
+    /// the instant it hits anything (impact feedback + a brief re-charge
+    /// cooldown), returning to a normal hover afterward. Releasing Flight
+    /// while hovering — whether idle or just after a Charge — is what
+    /// actually triggers landing.
     /// </summary>
     [RequireComponent(typeof(PlayerInputHandler))]
     [RequireComponent(typeof(PlayerController))]
     [RequireComponent(typeof(Rigidbody2D))]
+    [RequireComponent(typeof(PowerGauge))]
     public class FlightAbility : MonoBehaviour
     {
         private enum State { Grounded, Flying, Charging }
+
+        [Header("Power")]
+        [Tooltip("Power drained per second while hovering/flying (matches Freeze Breath's hold-drain rate). The Charge dash itself never drains Power.")]
+        [SerializeField] private float holdPowerCostPerSecond = 25f;
+        [Tooltip("Minimum Power that must be available/regenerated before Flight can be (re-)entered — matches Heat Vision's tap cost. Keeps Space held after a forced landing from instantly re-triggering Flight.")]
+        [SerializeField] private float minPowerToTakeOff = 10f;
 
         [Header("Liftoff / Landing")]
         [SerializeField] private float liftoffHeightOffset = 0.3f;
@@ -91,6 +104,7 @@ namespace HeroFangame.Player
         private PlayerInputHandler input;
         private PlayerController controller;
         private Rigidbody2D rb;
+        private PowerGauge power;
 
         private State state;
         private Vector2 chargeDirection;
@@ -109,6 +123,7 @@ namespace HeroFangame.Player
             input = GetComponent<PlayerInputHandler>();
             controller = GetComponent<PlayerController>();
             rb = GetComponent<Rigidbody2D>();
+            power = GetComponent<PowerGauge>();
             chargeAimController = new AbilityAimController(chargeAimSweepSpeedDegreesPerSecond);
         }
 
@@ -117,7 +132,7 @@ namespace HeroFangame.Player
             switch (state)
             {
                 case State.Grounded:
-                    if (input.FlightHeld && !controller.IsMovementLocked && !controller.IsGrabStance)
+                    if (input.FlightHeld && !controller.IsMovementLocked && !controller.IsGrabStance && power.Current >= minPowerToTakeOff)
                     {
                         EnterFlight();
                     }
@@ -129,13 +144,32 @@ namespace HeroFangame.Player
                         Land();
                         break;
                     }
+
+                    // Check the gauge's actual remaining value rather than
+                    // DrainOverTime's return value — that return value is
+                    // also 0 whenever Time.deltaTime is 0 (e.g. during the
+                    // brief Time.timeScale=0 HitStop freeze right after a
+                    // Charge-Crash impact), which would otherwise read as
+                    // "Power ran out" every frame of the freeze and force
+                    // Land()+instant re-EnterFlight() back-to-back (visible
+                    // as the liftoff/landing bursts firing simultaneously).
+                    power.DrainOverTime(holdPowerCostPerSecond);
+                    if (power.Current <= 0f)
+                    {
+                        // Power ran dry mid-flight — force landing right
+                        // here, right now, same forced-cutoff logic as
+                        // Heat Vision/Freeze Breath running out of Power.
+                        Land();
+                        break;
+                    }
+
                     CheckDoubleTap();
                     break;
 
                 case State.Charging:
                     // Uninterruptible: FlightHeld is ignored entirely here.
                     // Only Up/Down can steer (see AbilityAimController); the
-                    // dash itself only ends via OnCollisionEnter2D below.
+                    // dash itself only ends via HandleChargeCollision below.
                     chargeDirection = chargeAimController.Resolve(isNewActivation: false, input.MoveInput, chargeHorizontalFacing, Time.deltaTime);
                     controller.SetVelocityOverride(chargeDirection * chargeSpeed);
                     break;
@@ -291,6 +325,23 @@ namespace HeroFangame.Player
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
+        {
+            HandleChargeCollision(collision);
+        }
+
+        private void OnCollisionStay2D(Collision2D collision)
+        {
+            // Catches the case where the player double-taps into a wall/
+            // enemy they're already touching before Charging starts — Unity
+            // never fires OnCollisionEnter2D for a contact that already
+            // existed, so without this the Charge would keep shoving into
+            // the solid object (and its continuous shake would never turn
+            // off) until steered away with Up/Down. This resolves the hit
+            // on the very next physics step instead.
+            HandleChargeCollision(collision);
+        }
+
+        private void HandleChargeCollision(Collision2D collision)
         {
             if (state != State.Charging)
             {

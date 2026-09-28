@@ -216,7 +216,13 @@
       "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"AgentScripts/crop_ring.ps1\")",
       "Bash(rm -f AgentScripts/CheckTime.cs AgentScripts/ExtractVideoFrames.cs AgentScripts/InspectGraph.cs AgentScripts/InspectGraph2.cs AgentScripts/InspectGraphApi.cs AgentScripts/ModifyShockwaveGraph.cs AgentScripts/TriggerShockwave.cs AgentScripts/TriggerShockwave2.cs AgentScripts/TriggerShockwave3.cs AgentScripts/TriggerShockwave4.cs AgentScripts/crop.ps1 AgentScripts/crop_ring.ps1 AgentScripts/ring_edge_crop.png AgentScripts/shockwave_dim2_full.png)",
       "Bash(rm -rf AgentScripts/RefFrames AgentScripts/RefFrames2)",
-      "Bash(rm -f Assets/AgentScripts/RefVideo.mp4 Assets/AgentScripts/RefVideo.mp4.meta Assets/AgentScripts/shockwave_dim1.png Assets/AgentScripts/shockwave_dim1.png.meta Assets/AgentScripts/shockwave_dim2.png Assets/AgentScripts/shockwave_dim2.png.meta Assets/AgentScripts/shockwave_noise1.png Assets/AgentScripts/shockwave_noise1.png.meta Assets/AgentScripts/shockwave_noise2.png Assets/AgentScripts/shockwave_noise2.png.meta Assets/AgentScripts/shockwave_test_03.png Assets/AgentScripts/shockwave_test_03.png.meta Assets/AgentScripts/shockwave_test_p3.png Assets/AgentScripts/shockwave_test_p3.png.meta Assets/AgentScripts/wobble_t1.png Assets/AgentScripts/wobble_t1.png.meta Assets/AgentScripts/wobble_t2.png Assets/AgentScripts/wobble_t2.png.meta)"
+      "Bash(rm -f Assets/AgentScripts/RefVideo.mp4 Assets/AgentScripts/RefVideo.mp4.meta Assets/AgentScripts/shockwave_dim1.png Assets/AgentScripts/shockwave_dim1.png.meta Assets/AgentScripts/shockwave_dim2.png Assets/AgentScripts/shockwave_dim2.png.meta Assets/AgentScripts/shockwave_noise1.png Assets/AgentScripts/shockwave_noise1.png.meta Assets/AgentScripts/shockwave_noise2.png Assets/AgentScripts/shockwave_noise2.png.meta Assets/AgentScripts/shockwave_test_03.png Assets/AgentScripts/shockwave_test_03.png.meta Assets/AgentScripts/shockwave_test_p3.png Assets/AgentScripts/shockwave_test_p3.png.meta Assets/AgentScripts/wobble_t1.png Assets/AgentScripts/wobble_t1.png.meta Assets/AgentScripts/wobble_t2.png Assets/AgentScripts/wobble_t2.png.meta)",
+      "Bash(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 \"/c/Users/gohun/OneDrive/문서/oCam/녹화_2026_09_28_23_13_51_674.mp4\")",
+      "Bash(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate -of default=noprint_wrappers=1 \"/c/Users/gohun/OneDrive/문서/oCam/녹화_2026_09_28_23_13_51_674.mp4\")",
+      "Bash(mkdir -p /tmp/flightbug_frames)",
+      "Bash(ffmpeg -y -i \"/c/Users/gohun/OneDrive/문서/oCam/녹화_2026_09_28_23_13_51_674.mp4\" -vf \"fps=4\" /tmp/flightbug_frames/frame_%03d.png)",
+      "Bash(mkdir -p /tmp/flightbug_frames2)",
+      "Bash(ffmpeg -y -i \"/c/Users/gohun/OneDrive/문서/oCam/녹화_2026_09_28_23_13_51_674.mp4\" -vf \"fps=10\" /tmp/flightbug_frames2/f_%03d.png)"
     ]
   }
 }
