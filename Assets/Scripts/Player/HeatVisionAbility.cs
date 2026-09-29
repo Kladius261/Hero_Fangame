@@ -52,6 +52,7 @@ namespace HeroFangame.Player
         [SerializeField] private float tapPulseDuration = 0.12f;
         [SerializeField] private HeatVisionBeamRenderer beamRenderer;
         [SerializeField] private HeatVisionImpactEffect impactEffect;
+        [SerializeField] private HeatVisionDistortionEffect distortionEffect;
 
         [Header("Audio")]
         [SerializeField] private AudioSource beamAudioSource;
@@ -258,6 +259,7 @@ namespace HeroFangame.Player
                 beamRenderer.SetActive(true);
                 beamRenderer.UpdateBeam(origin, dir, hit.Distance);
             }
+            distortionEffect?.SetActive(true);
 
             if (impactEffect != null)
             {
@@ -288,6 +290,7 @@ namespace HeroFangame.Player
             controller.UnlockMovement(this);
             beamRenderer?.SetActive(false);
             impactEffect?.StopContact();
+            distortionEffect?.SetActive(false);
             beamAudioSource?.Stop();
             SetCameraShake(false);
         }
