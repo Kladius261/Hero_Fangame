@@ -60,6 +60,7 @@ namespace HeroFangame.Player
 
         [Header("Aim")]
         [SerializeField] private float aimSweepSpeedDegreesPerSecond = 180f;
+        [SerializeField] private float aimSweepAccelerationDegreesPerSecondSquared = 720f;
 
         private PlayerInputHandler input;
         private PlayerController controller;
@@ -85,7 +86,7 @@ namespace HeroFangame.Player
             {
                 abilityLock = gameObject.AddComponent<AbilityLock>();
             }
-            aimController = new AbilityAimController(aimSweepSpeedDegreesPerSecond);
+            aimController = new AbilityAimController(aimSweepSpeedDegreesPerSecond, aimSweepAccelerationDegreesPerSecondSquared);
             pitchWobble = new AudioPitchWobble(pitchWobbleSpeed, pitchWobbleAmplitude);
         }
 
