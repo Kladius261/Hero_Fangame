@@ -14,6 +14,10 @@ namespace HeroFangame.Camera
     /// IsMovementLocked/IsFlightMode) -- this class just reacts to
     /// SetActive() calls from each ability's own visual on/off transition
     /// points and never needs to arbitrate between them itself.
+    /// Also separately drives a second, independent full-screen pass
+    /// (Renderer2D.asset's "FlightWindPass" feature) that layers
+    /// FlightWindMAT on top of Flight's own shader for the duration of a
+    /// Charge-Crash dash -- see SetFlightWindActive.
     /// </summary>
     public class FullScreenAbilityEffect : MonoBehaviour
     {
@@ -23,6 +27,10 @@ namespace HeroFangame.Camera
         [SerializeField] private Material heatVisionSource;
         [SerializeField] private Material freezeBreathSource;
         [SerializeField] private Material flightSource;
+
+        [Header("Flight Charge-Crash Wind Overlay (instant on/off, no fade)")]
+        [Tooltip("Layered on top of the Flight shader above via a second FullScreenPassRendererFeature ('FlightWindPass' on Renderer2D.asset), active only for the duration of a Charge-Crash dash. Assigned directly as passMaterial -- no runtime instancing or value lerping, since this material's own shader handles its look entirely on its own (unlike heatVisionSource/freezeBreathSource/flightSource above, which get lerped _VoronoiIntensity/_VignetteIntensity instances).")]
+        [SerializeField] private Material flightWindSource;
 
         [Header("Fade Durations")]
         [SerializeField] private float heatVisionFadeInDuration = 0.125f;
@@ -43,6 +51,7 @@ namespace HeroFangame.Camera
         private static readonly int VignetteId = Shader.PropertyToID("_VignetteIntensity");
 
         private FullScreenPassRendererFeature feature;
+        private FullScreenPassRendererFeature flightWindFeature;
         private Material heatVisionInstance, freezeBreathInstance, flightInstance;
         private Kind currentKind;
         private Coroutine fadeRoutine;
@@ -61,6 +70,27 @@ namespace HeroFangame.Camera
                 return;
             }
             feature.passMaterial = null;
+
+            // TryGetRendererFeature<T> can't disambiguate between two
+            // features of the same FullScreenPassRendererFeature type, so
+            // the Charge-Crash wind overlay's own feature ("FlightWindPass")
+            // has to be found by name instead.
+            foreach (var candidate in rendererData.rendererFeatures)
+            {
+                if (candidate is FullScreenPassRendererFeature fullScreenFeature && candidate.name == "FlightWindPass")
+                {
+                    flightWindFeature = fullScreenFeature;
+                    break;
+                }
+            }
+            if (flightWindFeature == null)
+            {
+                Debug.LogWarning("FullScreenAbilityEffect: 'FlightWindPass' renderer feature not found; Charge-Crash wind overlay disabled.", this);
+            }
+            else
+            {
+                flightWindFeature.passMaterial = null;
+            }
         }
 
         /// <summary>
@@ -108,6 +138,24 @@ namespace HeroFangame.Camera
             // else: stale release for a kind that doesn't currently own the
             // screen (e.g. Heat Vision bailing out because Flight took
             // over) -- ignore, must not clear Flight's effect.
+        }
+
+        /// <summary>
+        /// Called directly from FlightAbility's StartCharge/EndCharge --
+        /// unlike SetActive above, this is a plain instant on/off with no
+        /// fade: FlightWindMAT's own shader fully defines its look, so
+        /// there's no exposed intensity value to lerp. Layers on top of
+        /// whatever Flight's own shader (above) is currently showing via a
+        /// second, independent FullScreenPassRendererFeature later in
+        /// Renderer2D.asset's feature list.
+        /// </summary>
+        public void SetFlightWindActive(bool active)
+        {
+            if (flightWindFeature == null)
+            {
+                return;
+            }
+            flightWindFeature.passMaterial = active ? flightWindSource : null;
         }
 
         private void RestartFade(bool targetOn)

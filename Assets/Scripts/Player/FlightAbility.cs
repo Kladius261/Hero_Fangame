@@ -335,6 +335,7 @@ namespace HeroFangame.Player
             // (sparser) default interval, so the sudden burst of speed reads
             // distinctly from the sustained hover trail.
             ghostTrail?.StartTrail(restart: true);
+            FullScreenAbilityEffect.Instance?.SetFlightWindActive(true);
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
@@ -446,6 +447,7 @@ namespace HeroFangame.Player
         private void EndCharge()
         {
             CameraShake.GetOrCreate()?.SetShaking(false);
+            FullScreenAbilityEffect.Instance?.SetFlightWindActive(false);
             // Back to Flying (not Grounded) — resume the denser hover trail
             // rather than stopping it outright.
             ghostTrail?.StartTrail(flightHoverGhostTrailInterval, restart: true);

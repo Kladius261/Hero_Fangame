@@ -37,10 +37,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _FadeContast: 1.1
-    - _Speed: 0.05
-    - _TextureContrast: 7
-    - _TransitionValue: 0.075
+    - _FadeContast: 1
+    - _Speed: 0.75
+    - _TextureContrast: 3
+    - _TransitionValue: 0.5
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

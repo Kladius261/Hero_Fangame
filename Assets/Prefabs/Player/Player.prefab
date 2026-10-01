@@ -25013,6 +25013,7 @@ MonoBehaviour:
   heatVisionSource: {fileID: 2100000, guid: 871b658abef11af409b95efd78040d75, type: 2}
   freezeBreathSource: {fileID: 2100000, guid: dab2e1ac6be4348428f7a0b36cf3b484, type: 2}
   flightSource: {fileID: 2100000, guid: 84908e2a793838240bafcb72e7a9a3e5, type: 2}
+  flightWindSource: {fileID: 2100000, guid: 4e4d330160392be4eba3198f85fa2e50, type: 2}
   heatVisionFadeInDuration: 0.125
   heatVisionFadeOutDuration: 0.75
   freezeBreathFadeInDuration: 0.75

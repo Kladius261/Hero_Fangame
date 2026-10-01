@@ -234,7 +234,9 @@
       "Bash(head -5 echo \"---\" grep -rl \"IceHexShard\\\\|IceRectSlab\" Assets --include=*.prefab --include=*.unity --include=*.mat --include=*.cs)",
       "Bash(grep -o '\"message\": \"[^\"]*Shard[^\"]*\"' unity command console --format json)",
       "Bash(rm -rf Assets/Temp/*.png Assets/Temp/*.png.meta)",
-      "Bash(rm -f \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\setup_soft_edges.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\update_fadeout.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\trigger_on.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\trigger_off.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\check_fade.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\trigger_on_and_check.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\fade_timing_test.cs\")"
+      "Bash(rm -f \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\setup_soft_edges.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\update_fadeout.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\trigger_on.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\trigger_off.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\check_fade.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\trigger_on_and_check.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\fade_timing_test.cs\")",
+      "Bash(rm -f Assets/Temp/*.png Assets/Temp/*.png.meta)",
+      "Bash(rm -f \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\inspect_rendererdata.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\inspect_validate.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\inspect_trygetfeature.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\add_wind_feature.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\wire_flightwind.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\test_wind_direct.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\find_player.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\test_charge_visual.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\test_endcharge.cs\")"
     ]
   }
 }
