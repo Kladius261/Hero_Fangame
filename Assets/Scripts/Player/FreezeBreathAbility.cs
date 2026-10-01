@@ -230,6 +230,7 @@ namespace HeroFangame.Player
             }
             isConeActive = true;
             pitchWobble.Apply(breathAudioSource, Time.deltaTime);
+            FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.FreezeBreath, true);
 
             // Visually clip the cone at the nearest hittable surface so the
             // mist wraps around the target instead of visibly passing
@@ -270,6 +271,7 @@ namespace HeroFangame.Player
             isConeActive = false;
             coneEffect?.StopCone();
             coneEffect?.StopBoundaryContact();
+            FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.FreezeBreath, false);
             breathAudioSource?.Stop();
         }
 

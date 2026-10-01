@@ -24228,6 +24228,7 @@ GameObject:
   - component: {fileID: 830490757953135061}
   - component: {fileID: -34217933127708495}
   - component: {fileID: 263715548480141037}
+  - component: {fileID: 5672002144543066719}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -24996,6 +24997,31 @@ MonoBehaviour:
   grabbableLayers:
     serializedVersion: 2
     m_Bits: 1536
+--- !u!114 &5672002144543066719
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5530497137793543233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bd0a799ef37b4c4a84b33cfc06c3490, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Camera.FullScreenAbilityEffect
+  rendererData: {fileID: 11400000, guid: 424799608f7334c24bf367e4bbfa7f9a, type: 2}
+  heatVisionSource: {fileID: 2100000, guid: 871b658abef11af409b95efd78040d75, type: 2}
+  freezeBreathSource: {fileID: 2100000, guid: dab2e1ac6be4348428f7a0b36cf3b484, type: 2}
+  flightSource: {fileID: 2100000, guid: 84908e2a793838240bafcb72e7a9a3e5, type: 2}
+  heatVisionFadeInDuration: 0.125
+  heatVisionFadeOutDuration: 0.75
+  freezeBreathFadeInDuration: 0.75
+  freezeBreathFadeOutDuration: 1
+  flightFadeInDuration: 0.25
+  flightFadeOutDuration: 0.35
+  freezeBreathSnowFadeInDuration: 0.5
+  freezeBreathSnowFadeOutDuration: 0.75
+  freezeBreathSnowSoftFadeOutDuration: 0.75
 --- !u!1 &5732415952229131395
 GameObject:
   m_ObjectHideFlags: 0

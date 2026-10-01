@@ -45,12 +45,12 @@ Material:
     - _Fullscreen_DstColorBlend: 10
     - _Fullscreen_SrcAlphaBlend: 1
     - _Fullscreen_SrcColorBlend: 5
-    - _VignetteIntensity: 2
+    - _VignetteIntensity: 1.5
     - _VignettePower: 10
-    - _VoronoiIntensity: 2
-    - _VoronoiPower: 10
+    - _VoronoiIntensity: 1
+    - _VoronoiPower: 6
     - _VoronoiSpeed: 10
     m_Colors:
-    - _VignetteColor: {r: 1, g: 0.036886375, b: 0, a: 1}
+    - _VignetteColor: {r: 1, g: 0.039973527, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

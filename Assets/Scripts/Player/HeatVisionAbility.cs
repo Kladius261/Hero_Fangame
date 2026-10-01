@@ -260,6 +260,7 @@ namespace HeroFangame.Player
                 beamRenderer.UpdateBeam(origin, dir, hit.Distance);
             }
             distortionEffect?.SetActive(true);
+            FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.HeatVision, true);
 
             if (impactEffect != null)
             {
@@ -291,6 +292,7 @@ namespace HeroFangame.Player
             beamRenderer?.SetActive(false);
             impactEffect?.StopContact();
             distortionEffect?.SetActive(false);
+            FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.HeatVision, false);
             beamAudioSource?.Stop();
             SetCameraShake(false);
         }

@@ -225,7 +225,16 @@
       "Bash(ffmpeg -y -i \"/c/Users/gohun/OneDrive/문서/oCam/녹화_2026_09_28_23_13_51_674.mp4\" -vf \"fps=10\" /tmp/flightbug_frames2/f_%03d.png)",
       "Bash(grep -n -A3 \"PlayerGrabAbility$\" \"C:\\\\Users\\\\gohun\\\\OneDrive\\\\Desktop\\\\UnityProject\\\\Hero_Fangame\\\\Assets\\\\Prefabs\\\\Player\\\\Player.prefab\")",
       "Bash(python -c \"import json; json.load\\(open\\('Assets/Settings/InputSystem_Actions.inputactions', encoding='utf-8'\\)\\); print\\('VALID JSON'\\)\")",
-      "Bash(node -e \"const fs=require\\('fs'\\); JSON.parse\\(fs.readFileSync\\('Assets/Settings/InputSystem_Actions.inputactions','utf8'\\)\\); console.log\\('VALID JSON'\\)\")"
+      "Bash(node -e \"const fs=require\\('fs'\\); JSON.parse\\(fs.readFileSync\\('Assets/Settings/InputSystem_Actions.inputactions','utf8'\\)\\); console.log\\('VALID JSON'\\)\")",
+      "Bash(awk 'NR==39572,NR==39900' Assets/Prefabs/Player/Player.prefab)",
+      "Bash(grep -rl \"guid: 8b5896b922f770f498f4675482236c31\" Assets/Materials/*.meta)",
+      "Bash(grep -rl \"20774440be59dcd4bbbd8e96976fdf69\" Assets --include=*.meta)",
+      "Bash(grep -rl \"cc8191b8a2dc93b4abe215e4ed456500\" Assets --include=*.meta)",
+      "Bash(python3 -c \" import json,sys d=json.load\\(sys.stdin\\) entries = d['data']['result']['entries'] if 'result' in d['data'] else d['data']['entries'] for e in entries[-5:]: print\\(e.get\\('message'\\)\\) \")",
+      "Bash(head -5 echo \"---\" grep -rl \"IceHexShard\\\\|IceRectSlab\" Assets --include=*.prefab --include=*.unity --include=*.mat --include=*.cs)",
+      "Bash(grep -o '\"message\": \"[^\"]*Shard[^\"]*\"' unity command console --format json)",
+      "Bash(rm -rf Assets/Temp/*.png Assets/Temp/*.png.meta)",
+      "Bash(rm -f \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\setup_soft_edges.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\update_fadeout.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\trigger_on.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\trigger_off.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\check_fade.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\trigger_on_and_check.cs\" \"C:\\\\Users\\\\gohun\\\\AppData\\\\Local\\\\Temp\\\\fade_timing_test.cs\")"
     ]
   }
 }

@@ -268,6 +268,7 @@ namespace HeroFangame.Player
             flightPropulsionVFX?.Play();
             flightAuraVFX?.Play();
             flightAuraRingsVFX?.Play();
+            FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.Flight, true);
             ghostTrail?.StartTrail(flightHoverGhostTrailInterval);
 
             AttackUtility.OverlapCircleAndDamageRadial(
@@ -299,6 +300,7 @@ namespace HeroFangame.Player
 
             flightAuraVFX?.Stop();
             flightAuraRingsVFX?.Stop();
+            FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.Flight, false);
             ghostTrail?.StopTrail();
             flightLandingVFX?.Play();
             playerSquash?.PlaySquash(Vector2.right);
