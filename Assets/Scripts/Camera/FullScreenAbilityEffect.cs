@@ -28,14 +28,14 @@ namespace HeroFangame.Camera
         [SerializeField] private float heatVisionFadeInDuration = 0.125f;
         [SerializeField] private float heatVisionFadeOutDuration = 0.75f;
         [SerializeField] private float freezeBreathFadeInDuration = 0.75f;
-        [SerializeField] private float freezeBreathFadeOutDuration = 1f;
+        [SerializeField] private float freezeBreathFadeOutDuration = 1.5f;
         [SerializeField] private float flightFadeInDuration = 0.25f;
         [SerializeField] private float flightFadeOutDuration = 0.35f;
 
         [Header("Freeze Breath Screen Snow Fade (independent of shader fade above)")]
         [SerializeField] private float freezeBreathSnowFadeInDuration = 0.5f;
-        [SerializeField] private float freezeBreathSnowFadeOutDuration = 0.75f;
-        [SerializeField] private float freezeBreathSnowSoftFadeOutDuration = 0.75f;
+        [SerializeField] private float freezeBreathSnowFadeOutDuration = 0.25f;
+        [SerializeField] private float freezeBreathSnowSoftFadeOutDuration = 0.5f;
 
         public static FullScreenAbilityEffect Instance { get; private set; }
 

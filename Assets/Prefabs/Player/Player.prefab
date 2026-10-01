@@ -25016,12 +25016,12 @@ MonoBehaviour:
   heatVisionFadeInDuration: 0.125
   heatVisionFadeOutDuration: 0.75
   freezeBreathFadeInDuration: 0.75
-  freezeBreathFadeOutDuration: 1
+  freezeBreathFadeOutDuration: 1.5
   flightFadeInDuration: 0.25
   flightFadeOutDuration: 0.35
   freezeBreathSnowFadeInDuration: 0.5
-  freezeBreathSnowFadeOutDuration: 0.75
-  freezeBreathSnowSoftFadeOutDuration: 0.75
+  freezeBreathSnowFadeOutDuration: 0.25
+  freezeBreathSnowSoftFadeOutDuration: 0.5
 --- !u!1 &5732415952229131395
 GameObject:
   m_ObjectHideFlags: 0
