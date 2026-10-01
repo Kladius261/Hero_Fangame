@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: FlightMagicMAT
-  m_Shader: {fileID: -6465566751694194690, guid: 915bb33e43ef65e40b3e481bcdd5a20a, type: 3}
+  m_Name: FlightWindMAT
+  m_Shader: {fileID: -6465566751694194690, guid: 41002522f11961e458e3bfe00400d670, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -37,14 +37,11 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _OutlineThickness: 0.02
-    - _VignetteIntensity: 2
-    - _VignettePower: 10
-    - _VoronoiDensity: 100
-    - _VoronoiIntensity: 2
-    - _VoronoiPower: 10
-    - _VoronoiSpeed: 10
+    - _FadeContast: 1.1
+    - _Speed: 0.05
+    - _TextureContrast: 7
+    - _TransitionValue: 0.075
     m_Colors:
-    - _VignetteColor: {r: 0, g: 0.5458816, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
