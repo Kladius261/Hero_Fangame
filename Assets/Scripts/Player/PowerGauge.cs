@@ -10,8 +10,8 @@ namespace HeroFangame.Player
     /// </summary>
     public class PowerGauge : MonoBehaviour
     {
-        [SerializeField] private float max = 100f;
-        [SerializeField] private float regenPerSecond = 40f;
+        [SerializeField] private float max = 300f;
+        [SerializeField] private float regenPerSecond = 80f;
         [SerializeField] private float regenDelay = 0.5f;
 
         public float Max => max;

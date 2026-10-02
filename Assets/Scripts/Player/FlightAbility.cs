@@ -179,7 +179,7 @@ namespace HeroFangame.Player
                     // Uninterruptible: FlightHeld is ignored entirely here.
                     // Only Up/Down can steer (see AbilityAimController); the
                     // dash itself only ends via HandleChargeCollision below.
-                    chargeDirection = chargeAimController.Resolve(isNewActivation: false, input.MoveInput, chargeHorizontalFacing, Time.deltaTime);
+                    chargeDirection = chargeAimController.Resolve(isNewActivation: false, 0f, input.MoveInput, chargeHorizontalFacing, Time.deltaTime);
                     controller.SetVelocityOverride(chargeDirection * chargeSpeed);
                     break;
             }
@@ -327,7 +327,7 @@ namespace HeroFangame.Player
         {
             state = State.Charging;
             chargeHorizontalFacing = direction;
-            chargeDirection = chargeAimController.Resolve(isNewActivation: true, input.MoveInput, chargeHorizontalFacing, Time.deltaTime);
+            chargeDirection = chargeAimController.Resolve(isNewActivation: true, AbilityAimController.AngleFromVerticalHeld(input.MoveInput), input.MoveInput, chargeHorizontalFacing, Time.deltaTime);
             controller.SetVelocityOverride(chargeDirection * chargeSpeed);
             CameraShake.GetOrCreate()?.SetShaking(true);
             // Force-restart even though the hover trail is already running:

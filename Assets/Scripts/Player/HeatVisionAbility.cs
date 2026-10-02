@@ -207,13 +207,23 @@ namespace HeroFangame.Player
         }
 
         /// <summary>
-        /// Heat Vision fires along the player's horizontal Facing, tilted
-        /// up/down by the Up/Down arrow keys via <see cref="aimController"/>
-        /// (see AbilityAimController for the exact aim rules).
+        /// Heat Vision fires along the player's horizontal Facing. On
+        /// activation, it auto-aims at the closest on-screen target inside
+        /// the +/-AngleCapDegrees cone (falling back to horizontal if none
+        /// exists); while held, Up/Down arrow keys tilt it further via
+        /// <see cref="aimController"/> (see AbilityAimController for the
+        /// exact aim rules).
         /// </summary>
         private Vector2 GetBeamDirection(bool isNewActivation)
         {
-            return aimController.Resolve(isNewActivation, input.MoveInput, controller.Facing, Time.deltaTime);
+            float initialAngle = 0f;
+            if (isNewActivation)
+            {
+                float horizontalSign = controller.Facing.x < 0f ? -1f : 1f;
+                float maxDistance = Mathf.Min(beamRange, CameraViewBounds.GetDistanceToEdge(transform.position.x, horizontalSign));
+                initialAngle = AbilityAimController.FindAutoAimAngleDegrees(transform.position, controller.Facing, maxDistance, hittableLayers);
+            }
+            return aimController.Resolve(isNewActivation, initialAngle, input.MoveInput, controller.Facing, Time.deltaTime);
         }
 
         private void FireTap()

@@ -1,4 +1,6 @@
 using UnityEngine;
+using HeroFangame.Combat;
+using HeroFangame.Core;
 
 namespace HeroFangame.Player
 {
@@ -8,11 +10,12 @@ namespace HeroFangame.Player
     /// Facing, but the Up/Down arrow keys tilt that direction up to
     /// +/-AngleCapDegrees while the ability is being held. Only the very
     /// instant an activation begins (a tap, or the first frame of a hold)
-    /// determines the starting angle: Up (and not Down) snaps straight to
-    /// the +cap, Down (and not Up) snaps to the -cap, and anything else —
-    /// neither held, both held, or Left/Right held — starts horizontal.
-    /// This initial snap is always instant, regardless of acceleration.
-    /// Once firing has begun, Left/Right are ignored entirely; only Up/Down
+    /// determines the starting angle: the caller auto-aims at the closest
+    /// Damageable target whose angle relative to Facing falls inside
+    /// +/-AngleCapDegrees (see <see cref="FindAutoAimAngleDegrees"/>), or
+    /// falls back to horizontal (0 degrees) if no such target exists. This
+    /// initial snap is always instant, regardless of acceleration. Once
+    /// firing has begun, Left/Right are ignored entirely; only Up/Down
     /// matter: holding the same key accelerates the sweep toward that
     /// key's cap (ramping up to, then holding, its max angular speed)
     /// rather than moving at a constant rate — this ramp is what gives the
@@ -57,22 +60,23 @@ namespace HeroFangame.Player
         /// frame). Mutates the internal angle and returns the resolved fire
         /// direction, mirrored horizontally to match <paramref name="facing"/>.
         /// </summary>
-        public Vector2 Resolve(bool isNewActivation, Vector2 moveInput, Vector2 facing, float deltaTime)
+        /// <param name="initialAngleDegrees">
+        /// The starting angle to snap to when <paramref name="isNewActivation"/>
+        /// is true (ignored otherwise) — typically the result of
+        /// <see cref="FindAutoAimAngleDegrees"/>, clamped here regardless of
+        /// what the caller passes in.
+        /// </param>
+        public Vector2 Resolve(bool isNewActivation, float initialAngleDegrees, Vector2 moveInput, Vector2 facing, float deltaTime)
         {
             bool upHeld = moveInput.y > 0.01f;
             bool downHeld = moveInput.y < -0.01f;
 
             if (isNewActivation)
             {
-                // Fresh activation: snap straight to the cap in whichever
-                // single vertical direction is held (Left/Right — or
-                // neither/both vertical keys — starts horizontal), never
-                // carrying over any angle or angular velocity from a
+                // Fresh activation: snap straight to the auto-aimed angle,
+                // never carrying over any angle or angular velocity from a
                 // previous, separate activation.
-                bool horizontalHeld = Mathf.Abs(moveInput.x) > 0.01f;
-                currentAngleDegrees = (!horizontalHeld && upHeld && !downHeld) ? AngleCapDegrees
-                                     : (!horizontalHeld && downHeld && !upHeld) ? -AngleCapDegrees
-                                     : 0f;
+                currentAngleDegrees = Mathf.Clamp(initialAngleDegrees, -AngleCapDegrees, AngleCapDegrees);
                 currentAngularVelocityDegPerSecond = 0f;
             }
             else
@@ -118,6 +122,74 @@ namespace HeroFangame.Player
         public Vector2 CurrentDirection(Vector2 facing)
         {
             return DirectionFromAngle(currentAngleDegrees, facing);
+        }
+
+        /// <summary>
+        /// Scans for the closest Damageable within maxDistance of origin
+        /// whose angle relative to facing falls inside +/-AngleCapDegrees,
+        /// and returns the signed angle (in this controller's
+        /// mirrored-angle space, i.e. the inverse of
+        /// <see cref="DirectionFromAngle"/>) needed to aim directly at it
+        /// on activation. Targets outside the cone — including anything
+        /// behind the player — are not eligible at all, never clamped to
+        /// the cap edge. Returns 0 (horizontal) if no valid target is
+        /// found, the documented edge-case fallback.
+        /// </summary>
+        public static float FindAutoAimAngleDegrees(Vector2 origin, Vector2 facing, float maxDistance, LayerMask mask)
+        {
+            var hits = AttackUtility.OverlapCircle(origin, maxDistance, mask, out int hitCount);
+            float horizontalSign = facing.x < 0f ? -1f : 1f;
+
+            bool found = false;
+            float bestAngle = 0f;
+            float bestSqrDistance = float.MaxValue;
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                var hit = hits[i];
+                if (hit == null || hit.GetComponentInParent<Damageable>() == null)
+                {
+                    continue;
+                }
+
+                Vector2 toTarget = (Vector2)hit.bounds.center - origin;
+                float sqrDistance = toTarget.sqrMagnitude;
+                if (sqrDistance < 0.0001f || sqrDistance >= bestSqrDistance)
+                {
+                    continue;
+                }
+
+                float angle = Mathf.Atan2(toTarget.y, horizontalSign * toTarget.x) * Mathf.Rad2Deg;
+                if (angle < -AngleCapDegrees || angle > AngleCapDegrees)
+                {
+                    // Outside the reachable cone entirely -- not eligible.
+                    continue;
+                }
+
+                bestSqrDistance = sqrDistance;
+                bestAngle = angle;
+                found = true;
+            }
+
+            return found ? bestAngle : 0f;
+        }
+
+        /// <summary>
+        /// Reproduces the original Up/Down activation-snap rule (Up-only
+        /// snaps to +cap, Down-only to -cap, anything else to horizontal).
+        /// Superseded by <see cref="FindAutoAimAngleDegrees"/> for Heat
+        /// Vision/Freeze Breath, but still used verbatim by FlightAbility's
+        /// charge-aim, which deliberately keeps the old, input-driven snap
+        /// instead of auto-aiming at a target.
+        /// </summary>
+        public static float AngleFromVerticalHeld(Vector2 moveInput)
+        {
+            bool upHeld = moveInput.y > 0.01f;
+            bool downHeld = moveInput.y < -0.01f;
+            bool horizontalHeld = Mathf.Abs(moveInput.x) > 0.01f;
+            return (!horizontalHeld && upHeld && !downHeld) ? AngleCapDegrees
+                 : (!horizontalHeld && downHeld && !upHeld) ? -AngleCapDegrees
+                 : 0f;
         }
 
         private static Vector2 DirectionFromAngle(float angleDegrees, Vector2 facing)

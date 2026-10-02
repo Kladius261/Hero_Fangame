@@ -24456,8 +24456,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99e8c6e25a9888e4db121630c1a45193, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Player.PowerGauge
-  max: 100
-  regenPerSecond: 40
+  max: 300
+  regenPerSecond: 80
   regenDelay: 0.5
 --- !u!114 &912075176261932814
 MonoBehaviour:

@@ -155,18 +155,29 @@ namespace HeroFangame.Player
         }
 
         /// <summary>
-        /// Freeze Breath fires along the player's horizontal Facing, tilted
-        /// up/down by the Up/Down arrow keys via <see cref="aimController"/>
-        /// — mirrors HeatVisionAbility.GetBeamDirection().
+        /// Freeze Breath fires along the player's horizontal Facing. On
+        /// activation, it auto-aims at the closest on-screen target inside
+        /// the +/-AngleCapDegrees cone (falling back to horizontal if none
+        /// exists), using maxReach to limit the target search to what this
+        /// particular call can actually hit; while held, Up/Down arrow
+        /// keys tilt it further via <see cref="aimController"/> — mirrors
+        /// HeatVisionAbility.GetBeamDirection().
         /// </summary>
-        private Vector2 GetBreathDirection(bool isNewActivation)
+        private Vector2 GetBreathDirection(bool isNewActivation, float maxReach)
         {
-            return aimController.Resolve(isNewActivation, input.MoveInput, controller.Facing, Time.deltaTime);
+            float initialAngle = 0f;
+            if (isNewActivation)
+            {
+                float horizontalSign = controller.Facing.x < 0f ? -1f : 1f;
+                float maxDistance = Mathf.Min(maxReach, CameraViewBounds.GetDistanceToEdge(transform.position.x, horizontalSign));
+                initialAngle = AbilityAimController.FindAutoAimAngleDegrees(transform.position, controller.Facing, maxDistance, hittableLayers);
+            }
+            return aimController.Resolve(isNewActivation, initialAngle, input.MoveInput, controller.Facing, Time.deltaTime);
         }
 
         private void ApplyCone(Vector2 size, int damage, float exposure, bool isTap, bool isNewActivation)
         {
-            Vector2 dir = GetBreathDirection(isNewActivation);
+            Vector2 dir = GetBreathDirection(isNewActivation, coneOffset + size.x);
 
             // Never let the cone reach past the edge of the camera's
             // current view — enemies further along the level haven't

@@ -122,6 +122,22 @@ namespace HeroFangame.Combat
             return colliderBuffer;
         }
 
+        /// <summary>
+        /// Query-only circle overlap: returns the hit colliders without
+        /// applying any damage — used by targeting/auto-aim scans (e.g.
+        /// AbilityAimController.FindAutoAimAngleDegrees) that only need to
+        /// inspect candidates, not damage them.
+        /// </summary>
+        public static Collider2D[] OverlapCircle(
+            Vector2 center,
+            float radius,
+            LayerMask mask,
+            out int hitCount)
+        {
+            hitCount = Physics2D.OverlapCircleNonAlloc(center, radius, colliderBuffer, mask);
+            return colliderBuffer;
+        }
+
         public static Collider2D[] OverlapCircleAndDamage(
             Vector2 center,
             float radius,
