@@ -24966,6 +24966,7 @@ MonoBehaviour:
   flightCrashVFX: {fileID: 6455817499858375674}
   flightChargeDebrisVFX: {fileID: 5914917055383234679}
   flightChargeShockwaveVFX: {fileID: 7811494764122747987}
+  flightShockwavePrefab: {fileID: 6575055099416179010, guid: 5abef7cebd9bffa468fd8a4208613f2c, type: 3}
 --- !u!114 &-34217933127708495
 MonoBehaviour:
   m_ObjectHideFlags: 0

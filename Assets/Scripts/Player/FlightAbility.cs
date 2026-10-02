@@ -109,6 +109,8 @@ namespace HeroFangame.Player
         [SerializeField] private ParticleSystem flightCrashVFX;
         [SerializeField] private ParticleSystem flightChargeDebrisVFX;
         [SerializeField] private ShockwaveEffect flightChargeShockwaveVFX;
+        [Tooltip("Full-screen shockwave pulse, dynamically instantiated at the player's position on both takeoff and landing and destroyed once its pulse finishes (unlike the pre-placed VFX above).")]
+        [SerializeField] private GameObject flightShockwavePrefab;
 
         private PlayerInputHandler input;
         private PlayerController controller;
@@ -268,6 +270,10 @@ namespace HeroFangame.Player
             flightPropulsionVFX?.Play();
             flightAuraVFX?.Play();
             flightAuraRingsVFX?.Play();
+            if (flightShockwavePrefab != null)
+            {
+                Instantiate(flightShockwavePrefab, transform.position, Quaternion.identity);
+            }
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.Flight, true);
             ghostTrail?.StartTrail(flightHoverGhostTrailInterval);
 
@@ -303,6 +309,10 @@ namespace HeroFangame.Player
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.Flight, false);
             ghostTrail?.StopTrail();
             flightLandingVFX?.Play();
+            if (flightShockwavePrefab != null)
+            {
+                Instantiate(flightShockwavePrefab, transform.position, Quaternion.identity);
+            }
             playerSquash?.PlaySquash(Vector2.right);
             CameraShake.GetOrCreate()?.Pulse(landingShakeDuration, landingShakeAmplitude);
             Haptics.GetOrCreate()?.Pulse(landingHapticDuration, landingHapticLowFrequency, landingHapticHighFrequency);
