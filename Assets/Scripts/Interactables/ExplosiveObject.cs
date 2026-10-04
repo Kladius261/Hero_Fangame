@@ -60,10 +60,12 @@ namespace HeroFangame.Interactables
         [SerializeField] private Color explosionFlashColor = Color.white;
         [SerializeField] private float explosionFlashDuration = 0.08f;
         [SerializeField] private float explosionVfxLifetime = 0.6f;
-        [SerializeField] private ExplosionBurstVfx[] explosionBurstVfx;
-        [SerializeField] private int minBurstVfxSpawnCount = 5;
-        [SerializeField] private int maxBurstVfxSpawnCount = 6;
-        [SerializeField] private float burstVfxClusterRadius = 0.6f;
+        [SerializeField] private GameObject cartoonBoomVfxPrefab;
+        [SerializeField] private GameObject cartoonBoomTextVfxPrefab;
+        [SerializeField] private float cartoonBoomMinScale = 0.4f;
+        [SerializeField] private float cartoonBoomMaxScale = 0.7f;
+        [SerializeField] private float cartoonBoomVfxLifetime = 1.5f;
+        [SerializeField] private int cartoonBoomTextSortingOrder = 1;
 
         private Damageable damageable;
         private SpriteRenderer spriteRenderer;
@@ -340,7 +342,7 @@ namespace HeroFangame.Interactables
             HitStop.GetOrCreate()?.Trigger(explosionHitStopDuration);
             Haptics.GetOrCreate()?.Pulse(explosionHapticDuration, explosionHapticLowFrequency, explosionHapticHighFrequency);
 
-            SpawnBurstVfxCluster();
+            SpawnCartoonBoomCluster();
 
             AttackUtility.OverlapCircleAndDamageRadial(
                 transform.position,
@@ -357,33 +359,33 @@ namespace HeroFangame.Interactables
         }
 
         /// <summary>
-        /// Spawns 5-6 random picks (repeats allowed) from the 3 burst VFX
-        /// templates as independent clones scattered around the explosion
-        /// center, so a single explosion reads as a dense, layered blast
-        /// instead of one lone particle burst. Clones are detached copies —
-        /// unaffected by this object's own destruction below — and clean
-        /// themselves up on the same timer as the explosion VFX lifetime.
+        /// Spawns a single PS_CartoonBoom clone centered on the explosion,
+        /// with randomized rotation and scale for some per-explosion
+        /// variety. Also spawns a single PS_CartoonBoomText instance at the
+        /// same spot and moment, rendered above it via a bumped
+        /// sortingOrder. Clones are detached copies — unaffected by this
+        /// object's own destruction below — and clean themselves up on
+        /// cartoonBoomVfxLifetime, decoupled from the exploded object's own
+        /// destroy timer (explosionVfxLifetime).
         /// </summary>
-        private void SpawnBurstVfxCluster()
+        private void SpawnCartoonBoomCluster()
         {
-            if (explosionBurstVfx == null || explosionBurstVfx.Length == 0)
+            if (cartoonBoomVfxPrefab != null)
             {
-                return;
+                float zRotation = Random.Range(0f, 360f);
+                var clone = Instantiate(cartoonBoomVfxPrefab, transform.position, Quaternion.Euler(0f, 0f, zRotation));
+                clone.transform.localScale = Vector3.one * Random.Range(cartoonBoomMinScale, cartoonBoomMaxScale);
+                Destroy(clone, cartoonBoomVfxLifetime);
             }
 
-            int count = Random.Range(minBurstVfxSpawnCount, maxBurstVfxSpawnCount + 1);
-            for (int i = 0; i < count; i++)
+            if (cartoonBoomTextVfxPrefab != null)
             {
-                var template = explosionBurstVfx[Random.Range(0, explosionBurstVfx.Length)];
-                if (template == null)
+                var textClone = Instantiate(cartoonBoomTextVfxPrefab, transform.position, Quaternion.identity);
+                foreach (var particleRenderer in textClone.GetComponentsInChildren<ParticleSystemRenderer>())
                 {
-                    continue;
+                    particleRenderer.sortingOrder = cartoonBoomTextSortingOrder;
                 }
-
-                Vector2 offset = Random.insideUnitCircle * burstVfxClusterRadius;
-                var clone = Instantiate(template, transform.position + (Vector3)offset, template.transform.rotation);
-                clone.Play();
-                Destroy(clone.gameObject, explosionVfxLifetime);
+                Destroy(textClone, cartoonBoomVfxLifetime);
             }
         }
 
