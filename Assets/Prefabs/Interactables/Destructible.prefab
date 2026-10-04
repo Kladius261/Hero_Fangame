@@ -7515,3 +7515,4 @@ MonoBehaviour:
   throwImpactShakeDuration: 0.15
   throwImpactShakeAmplitude: 1.75
   throwImpactHitStopDuration: 0.08
+  dustParticlePrefab: {fileID: 3971127363323145994, guid: e6592844abf8e9245a6f9a0621aeb65f, type: 3}

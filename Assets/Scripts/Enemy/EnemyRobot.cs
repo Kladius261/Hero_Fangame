@@ -97,6 +97,9 @@ namespace HeroFangame.Enemy
         [SerializeField] private float throwImpactHapticDuration = 0.15f;
         [SerializeField] private float throwImpactHapticLowFrequency = 1f;
         [SerializeField] private float throwImpactHapticHighFrequency = 0.6f;
+        [SerializeField] private GameObject dustParticlePrefab;
+        [Tooltip("Vertical offset applied to the dust spawn point so it appears at the robot's feet rather than its center pivot.")]
+        [SerializeField] private float dustSpawnHeightOffset = -0.5f;
 
         private Rigidbody2D rb;
         private SpriteRenderer spriteRenderer;
@@ -510,6 +513,10 @@ namespace HeroFangame.Enemy
             {
                 wasFrozenWhenGrabbed = false;
                 Thaw(shattered: true);
+            }
+            else
+            {
+                DustParticle.SpawnCluster(dustParticlePrefab, transform.position + Vector3.up * dustSpawnHeightOffset);
             }
 
             damageable.TakeDamage(throwSelfDamage, new DamageInfo(thrower, Vector2.zero, 0f));

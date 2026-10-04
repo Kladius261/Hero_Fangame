@@ -7386,6 +7386,12 @@ MonoBehaviour:
   freezeKnockbackDistance: 0.4
   freezeShakeDuration: 0.12
   iceBreakHitStopDuration: 0.1
+  freezeHapticDuration: 0.15
+  freezeHapticLowFrequency: 0.8
+  freezeHapticHighFrequency: 0.2
+  iceBreakHapticDuration: 0.12
+  iceBreakHapticLowFrequency: 0.4
+  iceBreakHapticHighFrequency: 0.8
   grabLocalOffset: {x: 0, y: 0.9, z: 0}
   throwDistance: 6
   throwDuration: 0.25
@@ -7399,6 +7405,10 @@ MonoBehaviour:
   throwImpactShakeDuration: 0.15
   throwImpactShakeAmplitude: 1.75
   throwImpactHitStopDuration: 0.08
+  throwImpactHapticDuration: 0.15
+  throwImpactHapticLowFrequency: 1
+  throwImpactHapticHighFrequency: 0.6
+  dustParticlePrefab: {fileID: 3971127363323145994, guid: e6592844abf8e9245a6f9a0621aeb65f, type: 3}
 --- !u!114 &2161864642756963197
 MonoBehaviour:
   m_ObjectHideFlags: 0

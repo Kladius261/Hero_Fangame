@@ -24967,6 +24967,7 @@ MonoBehaviour:
   flightChargeDebrisVFX: {fileID: 5914917055383234679}
   flightChargeShockwaveVFX: {fileID: 7811494764122747987}
   flightShockwavePrefab: {fileID: 6575055099416179010, guid: 5abef7cebd9bffa468fd8a4208613f2c, type: 3}
+  dustParticlePrefab: {fileID: 3971127363323145994, guid: e6592844abf8e9245a6f9a0621aeb65f, type: 3}
 --- !u!114 &-34217933127708495
 MonoBehaviour:
   m_ObjectHideFlags: 0

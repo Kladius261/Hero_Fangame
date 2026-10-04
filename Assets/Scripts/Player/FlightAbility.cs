@@ -111,6 +111,9 @@ namespace HeroFangame.Player
         [SerializeField] private ShockwaveEffect flightChargeShockwaveVFX;
         [Tooltip("Full-screen shockwave pulse, dynamically instantiated at the player's position on both takeoff and landing and destroyed once its pulse finishes (unlike the pre-placed VFX above).")]
         [SerializeField] private GameObject flightShockwavePrefab;
+        [SerializeField] private GameObject dustParticlePrefab;
+        [Tooltip("Vertical offset applied to the dust spawn point so it appears at the player's feet rather than its center pivot.")]
+        [SerializeField] private float dustSpawnHeightOffset = -0.75f;
 
         private PlayerInputHandler input;
         private PlayerController controller;
@@ -274,6 +277,15 @@ namespace HeroFangame.Player
             {
                 Instantiate(flightShockwavePrefab, transform.position, Quaternion.identity);
             }
+            DustParticle.SpawnCluster(
+                dustParticlePrefab,
+                transform.position + Vector3.up * dustSpawnHeightOffset,
+                minClumps: 7,
+                maxClumps: 8,
+                clumpSpread: 3f,
+                minScale: 1.2f,
+                maxScale: 2.6f,
+                verticalSpreadScale: 0f);
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.Flight, true);
             ghostTrail?.StartTrail(flightHoverGhostTrailInterval);
 
@@ -313,6 +325,15 @@ namespace HeroFangame.Player
             {
                 Instantiate(flightShockwavePrefab, transform.position, Quaternion.identity);
             }
+            DustParticle.SpawnCluster(
+                dustParticlePrefab,
+                transform.position + Vector3.up * dustSpawnHeightOffset,
+                minClumps: 7,
+                maxClumps: 8,
+                clumpSpread: 3f,
+                minScale: 1.2f,
+                maxScale: 2.6f,
+                verticalSpreadScale: 0f);
             playerSquash?.PlaySquash(Vector2.right);
             CameraShake.GetOrCreate()?.Pulse(landingShakeDuration, landingShakeAmplitude);
             Haptics.GetOrCreate()?.Pulse(landingHapticDuration, landingHapticLowFrequency, landingHapticHighFrequency);

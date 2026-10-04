@@ -65,6 +65,9 @@ namespace HeroFangame.Interactables
         [SerializeField] private float throwImpactHapticDuration = 0.15f;
         [SerializeField] private float throwImpactHapticLowFrequency = 1f;
         [SerializeField] private float throwImpactHapticHighFrequency = 0.6f;
+        [SerializeField] private GameObject dustParticlePrefab;
+        [Tooltip("Vertical offset applied to the dust spawn point so it appears at the object's base rather than its center pivot.")]
+        [SerializeField] private float dustSpawnHeightOffset = -0.5f;
 
         private Damageable damageable;
         private SpriteRenderer spriteRenderer;
@@ -314,6 +317,10 @@ namespace HeroFangame.Interactables
                 // covers the whole landing impact so a frozen throw feels
                 // exactly like an unfrozen one, plus the ice breaking.
                 Thaw(shattered: true);
+            }
+            else
+            {
+                DustParticle.SpawnCluster(dustParticlePrefab, transform.position + Vector3.up * dustSpawnHeightOffset);
             }
 
             damageable.TakeDamage(throwSelfDamage, new DamageInfo(thrower, Vector2.zero, 0f));
