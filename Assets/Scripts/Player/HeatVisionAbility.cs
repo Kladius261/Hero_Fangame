@@ -52,7 +52,8 @@ namespace HeroFangame.Player
         [SerializeField] private float tapPulseDuration = 0.12f;
         [SerializeField] private HeatVisionBeamRenderer beamRenderer;
         [SerializeField] private HeatVisionImpactEffect impactEffect;
-        [SerializeField] private HeatVisionDistortionEffect distortionEffect;
+        [Tooltip("Heat-haze distortion sprite, dynamically instantiated at the player's position when the beam starts and destroyed the instant it stops (lighter than keeping a disabled instance parented under the player).")]
+        [SerializeField] private GameObject distortionEffectPrefab;
 
         [Header("Audio")]
         [SerializeField] private AudioSource beamAudioSource;
@@ -74,6 +75,7 @@ namespace HeroFangame.Player
         private float tickTimer;
         private float tapPulseTimeRemaining;
         private bool isBeamActive;
+        private GameObject distortionEffectInstance;
 
         private AudioPitchWobble pitchWobble;
 
@@ -260,6 +262,10 @@ namespace HeroFangame.Player
             {
                 beamAudioSource?.Play();
                 pitchWobble.Restart();
+                if (distortionEffectPrefab != null && distortionEffectInstance == null)
+                {
+                    distortionEffectInstance = Instantiate(distortionEffectPrefab, transform.position, Quaternion.identity);
+                }
             }
             isBeamActive = true;
             pitchWobble.Apply(beamAudioSource, Time.deltaTime);
@@ -269,7 +275,6 @@ namespace HeroFangame.Player
                 beamRenderer.SetActive(true);
                 beamRenderer.UpdateBeam(origin, dir, hit.Distance);
             }
-            distortionEffect?.SetActive(true);
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.HeatVision, true);
 
             if (impactEffect != null)
@@ -301,7 +306,11 @@ namespace HeroFangame.Player
             controller.UnlockMovement(this);
             beamRenderer?.SetActive(false);
             impactEffect?.StopContact();
-            distortionEffect?.SetActive(false);
+            if (distortionEffectInstance != null)
+            {
+                Destroy(distortionEffectInstance);
+                distortionEffectInstance = null;
+            }
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.HeatVision, false);
             beamAudioSource?.Stop();
             SetCameraShake(false);

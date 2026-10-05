@@ -24262,7 +24262,6 @@ Transform:
   - {fileID: 7460742157420938501}
   - {fileID: 4933486367926015561}
   - {fileID: 4004731143934777169}
-  - {fileID: 1118160479629724684}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &4243249598003585982
@@ -24488,7 +24487,7 @@ MonoBehaviour:
   tapPulseDuration: 0.12
   beamRenderer: {fileID: 7863675797695388870}
   impactEffect: {fileID: 304042822844005823}
-  distortionEffect: {fileID: 2797522671667567784}
+  distortionEffectPrefab: {fileID: 5168153318579360575, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
   beamAudioSource: {fileID: 3364541944535352698}
   pitchWobbleSpeed: 6
   pitchWobbleAmplitude: 0.1
@@ -24968,6 +24967,7 @@ MonoBehaviour:
   flightChargeShockwaveVFX: {fileID: 7811494764122747987}
   flightShockwavePrefab: {fileID: 6575055099416179010, guid: 5abef7cebd9bffa468fd8a4208613f2c, type: 3}
   dustParticlePrefab: {fileID: 3971127363323145994, guid: e6592844abf8e9245a6f9a0621aeb65f, type: 3}
+  dustSpawnHeightOffset: -0.75
 --- !u!114 &-34217933127708495
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -51026,91 +51026,3 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
---- !u!1001 &4392945616659389740
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 5620796083438581970}
-    m_Modifications:
-    - target: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5168153318579360575, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      propertyPath: m_Name
-      value: HeatVisionDistortion
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 5168153318579360575, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2797522671667567784}
-  m_SourcePrefab: {fileID: 100100000, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
---- !u!4 &1118160479629724684 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3707132969272627488, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-  m_PrefabInstance: {fileID: 4392945616659389740}
-  m_PrefabAsset: {fileID: 0}
---- !u!212 &7254246184732933000 stripped
-SpriteRenderer:
-  m_CorrespondingSourceObject: {fileID: 6366579947765147300, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-  m_PrefabInstance: {fileID: 4392945616659389740}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &8885066382995770899 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5168153318579360575, guid: 4733b383638e1e144bf6cfc98a901a2d, type: 3}
-  m_PrefabInstance: {fileID: 4392945616659389740}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &2797522671667567784
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8885066382995770899}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 43e17fcc5e5e739438cfc6872b92e05f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Player.HeatVisionDistortionEffect
-  distortionSprite: {fileID: 7254246184732933000}
