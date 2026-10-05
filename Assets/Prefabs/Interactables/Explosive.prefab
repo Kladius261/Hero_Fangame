@@ -21422,6 +21422,12 @@ MonoBehaviour:
     type: 3}
   cartoonBoomTextVfxPrefab: {fileID: 1562960173952882842, guid: 9412da207c2410f4f98bd8809e01dff3,
     type: 3}
+  cartoonBoomTextMaterials:
+  - {fileID: 2100000, guid: 76b17c66e03bdf44698d6a215d426374, type: 2}
+  - {fileID: 2100000, guid: 4165422bef3631e47affe72c290aeceb, type: 2}
+  - {fileID: 2100000, guid: 7955815a7f63147448ef48410216e563, type: 2}
+  - {fileID: 2100000, guid: 0479f126af1b6be4c81d2b19e9003710, type: 2}
+  - {fileID: 2100000, guid: 2e6785113202d074f9e7bfdbe4412ecd, type: 2}
   cartoonBoomMinScale: 0.4
   cartoonBoomMaxScale: 0.7
   cartoonBoomVfxLifetime: 1.5

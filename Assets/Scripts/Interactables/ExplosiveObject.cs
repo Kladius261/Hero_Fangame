@@ -62,6 +62,7 @@ namespace HeroFangame.Interactables
         [SerializeField] private float explosionVfxLifetime = 0.6f;
         [SerializeField] private GameObject cartoonBoomVfxPrefab;
         [SerializeField] private GameObject cartoonBoomTextVfxPrefab;
+        [SerializeField] private Material[] cartoonBoomTextMaterials;
         [SerializeField] private float cartoonBoomMinScale = 0.4f;
         [SerializeField] private float cartoonBoomMaxScale = 0.7f;
         [SerializeField] private float cartoonBoomVfxLifetime = 1.5f;
@@ -363,10 +364,13 @@ namespace HeroFangame.Interactables
         /// with randomized rotation and scale for some per-explosion
         /// variety. Also spawns a single PS_CartoonBoomText instance at the
         /// same spot and moment, rendered above it via a bumped
-        /// sortingOrder. Clones are detached copies — unaffected by this
-        /// object's own destruction below — and clean themselves up on
-        /// cartoonBoomVfxLifetime, decoupled from the exploded object's own
-        /// destroy timer (explosionVfxLifetime).
+        /// sortingOrder, with its material swapped at random from
+        /// cartoonBoomTextMaterials (the BoomText1-5 pool) so a different
+        /// sound-effect-text sprite shows each time. Clones are detached
+        /// copies — unaffected by this object's own destruction below —
+        /// and clean themselves up on cartoonBoomVfxLifetime, decoupled
+        /// from the exploded object's own destroy timer
+        /// (explosionVfxLifetime).
         /// </summary>
         private void SpawnCartoonBoomCluster()
         {
@@ -381,9 +385,16 @@ namespace HeroFangame.Interactables
             if (cartoonBoomTextVfxPrefab != null)
             {
                 var textClone = Instantiate(cartoonBoomTextVfxPrefab, transform.position, Quaternion.identity);
+                Material textMaterial = (cartoonBoomTextMaterials != null && cartoonBoomTextMaterials.Length > 0)
+                    ? cartoonBoomTextMaterials[Random.Range(0, cartoonBoomTextMaterials.Length)]
+                    : null;
                 foreach (var particleRenderer in textClone.GetComponentsInChildren<ParticleSystemRenderer>())
                 {
                     particleRenderer.sortingOrder = cartoonBoomTextSortingOrder;
+                    if (textMaterial != null)
+                    {
+                        particleRenderer.material = textMaterial;
+                    }
                 }
                 Destroy(textClone, cartoonBoomVfxLifetime);
             }
