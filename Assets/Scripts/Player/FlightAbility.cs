@@ -2,6 +2,7 @@ using UnityEngine;
 using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Camera;
+using HeroFangame.Interactables;
 
 namespace HeroFangame.Player
 {
@@ -102,18 +103,22 @@ namespace HeroFangame.Player
         [SerializeField] private HitSquashEffect playerSquash;
 
         [Header("VFX")]
-        [SerializeField] private ParticleSystem flightAuraVFX;
-        [SerializeField] private ParticleSystem flightAuraRingsVFX;
-        [SerializeField] private ParticleSystem flightPropulsionVFX;
-        [SerializeField] private ParticleSystem flightLandingVFX;
-        [SerializeField] private ParticleSystem flightCrashVFX;
-        [SerializeField] private ParticleSystem flightChargeDebrisVFX;
         [SerializeField] private ShockwaveEffect flightChargeShockwaveVFX;
         [Tooltip("Full-screen shockwave pulse, dynamically instantiated at the player's position on both takeoff and landing and destroyed once its pulse finishes (unlike the pre-placed VFX above).")]
         [SerializeField] private GameObject flightShockwavePrefab;
         [SerializeField] private GameObject dustParticlePrefab;
         [Tooltip("Vertical offset applied to the dust spawn point so it appears at the player's feet rather than its center pivot.")]
         [SerializeField] private float dustSpawnHeightOffset = -0.75f;
+
+        [Header("Charge-Crash VFX")]
+        [Tooltip("Cartoon crash burst, instantiated at the Charge dash's impact point on every Charge-ending collision (enemy or wall). Mirrors ExplosiveObject's cartoon boom cluster: random Z rotation + random scale, destroyed after chargeCrashVfxLifetime.")]
+        [SerializeField] private GameObject chargeCrashVfxPrefab;
+        [SerializeField] private GameObject chargeCrashTextVfxPrefab;
+        [SerializeField] private Material[] chargeCrashTextMaterials;
+        [SerializeField] private float chargeCrashMinScale = 0.4f;
+        [SerializeField] private float chargeCrashMaxScale = 0.7f;
+        [SerializeField] private float chargeCrashVfxLifetime = 1.5f;
+        [SerializeField] private int chargeCrashTextSortingOrder = 1;
 
         private PlayerInputHandler input;
         private PlayerController controller;
@@ -270,9 +275,6 @@ namespace HeroFangame.Player
             CameraShake.GetOrCreate()?.Pulse(liftoffShakeDuration, liftoffShakeAmplitude);
             Haptics.GetOrCreate()?.Pulse(liftoffHapticDuration, liftoffHapticLowFrequency, liftoffHapticHighFrequency);
             playerSquash?.PlaySquash(Vector2.up);
-            flightPropulsionVFX?.Play();
-            flightAuraVFX?.Play();
-            flightAuraRingsVFX?.Play();
             if (flightShockwavePrefab != null)
             {
                 Instantiate(flightShockwavePrefab, transform.position, Quaternion.identity);
@@ -286,7 +288,6 @@ namespace HeroFangame.Player
                 minScale: 1.2f,
                 maxScale: 2.6f,
                 verticalSpreadScale: 0f);
-            FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.Flight, true);
             ghostTrail?.StartTrail(flightHoverGhostTrailInterval);
 
             AttackUtility.OverlapCircleAndDamageRadial(
@@ -316,11 +317,7 @@ namespace HeroFangame.Player
             rb.position -= Vector2.up * liftoffHeightOffset;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Discrete;
 
-            flightAuraVFX?.Stop();
-            flightAuraRingsVFX?.Stop();
-            FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.Flight, false);
             ghostTrail?.StopTrail();
-            flightLandingVFX?.Play();
             if (flightShockwavePrefab != null)
             {
                 Instantiate(flightShockwavePrefab, transform.position, Quaternion.identity);
@@ -403,8 +400,8 @@ namespace HeroFangame.Player
                 HandleChargeHitWall(collision);
             }
 
-            PlayChargeDebris(collision.GetContact(0).point);
             flightChargeShockwaveVFX?.PlayAt(collision.GetContact(0).point);
+            SpawnChargeCrashCluster(collision.GetContact(0).point);
             EndCharge();
         }
 
@@ -428,20 +425,55 @@ namespace HeroFangame.Player
                 primaryCollider);
         }
 
-        private void PlayChargeDebris(Vector2 point)
+        /// <summary>
+        /// Spawns a single PS_CartoonCrash clone centered on the Charge
+        /// dash's impact point, with randomized rotation and scale for some
+        /// per-crash variety. Also spawns a single PS_CartoonCrashText
+        /// instance at the same spot and moment, rendered above it via a
+        /// bumped sortingOrder, with its material swapped at random from
+        /// chargeCrashTextMaterials (the CrashText1-5 pool) so a different
+        /// sound-effect-text sprite shows each time. Mirrors
+        /// ExplosiveObject.SpawnCartoonBoomCluster. Fires on every
+        /// Charge-ending collision (enemy or wall) via HandleChargeCollision.
+        /// </summary>
+        private void SpawnChargeCrashCluster(Vector2 point)
         {
-            if (flightChargeDebrisVFX == null)
+            if (chargeCrashVfxPrefab != null)
             {
-                return;
+                float zRotation = Random.Range(0f, 360f);
+                var clone = Instantiate(chargeCrashVfxPrefab, point, Quaternion.Euler(0f, 0f, zRotation));
+                clone.transform.localScale = Vector3.one * Random.Range(chargeCrashMinScale, chargeCrashMaxScale);
+                Destroy(clone, chargeCrashVfxLifetime);
             }
-            flightChargeDebrisVFX.transform.position = point;
-            flightChargeDebrisVFX.Play();
+
+            if (chargeCrashTextVfxPrefab != null)
+            {
+                var textClone = Instantiate(chargeCrashTextVfxPrefab, point, Quaternion.identity);
+                Material textMaterial = (chargeCrashTextMaterials != null && chargeCrashTextMaterials.Length > 0)
+                    ? chargeCrashTextMaterials[Random.Range(0, chargeCrashTextMaterials.Length)]
+                    : null;
+                foreach (var particleRenderer in textClone.GetComponentsInChildren<ParticleSystemRenderer>())
+                {
+                    particleRenderer.sortingOrder = chargeCrashTextSortingOrder;
+                    if (textMaterial != null)
+                    {
+                        particleRenderer.material = textMaterial;
+                    }
+                }
+                Destroy(textClone, chargeCrashVfxLifetime);
+            }
         }
 
         private void HandleChargeHitDamageable(Damageable damageable, Collision2D collision)
         {
             Vector2 awayDir = (Vector2)collision.collider.bounds.center - (Vector2)transform.position;
             awayDir = awayDir.sqrMagnitude > 0.0001f ? awayDir.normalized : chargeDirection;
+
+            // Crashing straight into an explosive would otherwise detonate
+            // it on the same frame as SpawnChargeCrashCluster below, visibly
+            // overlapping two cartoon bursts at the same point -- let the
+            // Charge-Crash VFX take priority instead.
+            collision.collider.GetComponentInParent<ExplosiveObject>()?.SuppressNextExplosionVfx();
 
             damageable.TakeDamage(chargeDamage, new DamageInfo(gameObject, awayDir, chargeKnockbackForce));
 
@@ -451,12 +483,6 @@ namespace HeroFangame.Player
                 hitRb.AddForce(awayDir * chargeKnockbackForce, ForceMode2D.Impulse);
             }
             collision.collider.GetComponentInParent<HitSquashEffect>()?.PlaySquash(awayDir);
-
-            if (flightCrashVFX != null)
-            {
-                flightCrashVFX.transform.position = collision.GetContact(0).point;
-                flightCrashVFX.Play();
-            }
 
             CameraShake.GetOrCreate()?.Pulse(chargeCrashShakeDuration, chargeCrashShakeAmplitude);
             HitStop.GetOrCreate()?.Trigger(chargeCrashHitStopDuration);

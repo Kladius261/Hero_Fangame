@@ -6,30 +6,29 @@ namespace HeroFangame.Camera
 {
     /// <summary>
     /// Drives the full-screen post-process effect for whichever of Heat
-    /// Vision / Freeze Breath / Flight is currently active, by swapping
-    /// Renderer2D's FullScreenPassRendererFeature.passMaterial and lerping
-    /// each material's _VoronoiIntensity/_VignetteIntensity in on
-    /// activation and out on release. Relies entirely on the abilities'
-    /// existing mutual exclusivity (AbilityLock + PlayerController's
-    /// IsMovementLocked/IsFlightMode) -- this class just reacts to
-    /// SetActive() calls from each ability's own visual on/off transition
-    /// points and never needs to arbitrate between them itself.
+    /// Vision / Freeze Breath is currently active, by swapping Renderer2D's
+    /// FullScreenPassRendererFeature.passMaterial and lerping each
+    /// material's _VoronoiIntensity/_VignetteIntensity in on activation and
+    /// out on release. Relies entirely on the abilities' existing mutual
+    /// exclusivity (AbilityLock + PlayerController's IsMovementLocked) --
+    /// this class just reacts to SetActive() calls from each ability's own
+    /// visual on/off transition points and never needs to arbitrate between
+    /// them itself.
     /// Also separately drives a second, independent full-screen pass
     /// (Renderer2D.asset's "FlightWindPass" feature) that layers
-    /// FlightWindMAT on top of Flight's own shader for the duration of a
-    /// Charge-Crash dash -- see SetFlightWindActive.
+    /// FlightWindMAT on for the duration of a Flight Charge-Crash dash --
+    /// see SetFlightWindActive.
     /// </summary>
     public class FullScreenAbilityEffect : MonoBehaviour
     {
-        public enum Kind { None, HeatVision, FreezeBreath, Flight }
+        public enum Kind { None, HeatVision, FreezeBreath }
 
         [SerializeField] private ScriptableRendererData rendererData;
         [SerializeField] private Material heatVisionSource;
         [SerializeField] private Material freezeBreathSource;
-        [SerializeField] private Material flightSource;
 
         [Header("Flight Charge-Crash Wind Overlay (instant on/off, no fade)")]
-        [Tooltip("Layered on top of the Flight shader above via a second FullScreenPassRendererFeature ('FlightWindPass' on Renderer2D.asset), active only for the duration of a Charge-Crash dash. Assigned directly as passMaterial -- no runtime instancing or value lerping, since this material's own shader handles its look entirely on its own (unlike heatVisionSource/freezeBreathSource/flightSource above, which get lerped _VoronoiIntensity/_VignetteIntensity instances).")]
+        [Tooltip("Active only for the duration of a Flight Charge-Crash dash, via a second FullScreenPassRendererFeature ('FlightWindPass' on Renderer2D.asset). Assigned directly as passMaterial -- no runtime instancing or value lerping, since this material's own shader handles its look entirely on its own (unlike heatVisionSource/freezeBreathSource above, which get lerped _VoronoiIntensity/_VignetteIntensity instances).")]
         [SerializeField] private Material flightWindSource;
 
         [Header("Fade Durations")]
@@ -37,8 +36,6 @@ namespace HeroFangame.Camera
         [SerializeField] private float heatVisionFadeOutDuration = 0.75f;
         [SerializeField] private float freezeBreathFadeInDuration = 0.75f;
         [SerializeField] private float freezeBreathFadeOutDuration = 1.5f;
-        [SerializeField] private float flightFadeInDuration = 0.25f;
-        [SerializeField] private float flightFadeOutDuration = 0.35f;
 
         [Header("Freeze Breath Screen Snow Fade (independent of shader fade above)")]
         [SerializeField] private float freezeBreathSnowFadeInDuration = 0.5f;
@@ -52,7 +49,7 @@ namespace HeroFangame.Camera
 
         private FullScreenPassRendererFeature feature;
         private FullScreenPassRendererFeature flightWindFeature;
-        private Material heatVisionInstance, freezeBreathInstance, flightInstance;
+        private Material heatVisionInstance, freezeBreathInstance;
         private Kind currentKind;
         private Coroutine fadeRoutine;
 
@@ -62,7 +59,6 @@ namespace HeroFangame.Camera
 
             heatVisionInstance = new Material(heatVisionSource);
             freezeBreathInstance = new Material(freezeBreathSource);
-            flightInstance = new Material(flightSource);
 
             if (rendererData == null || !rendererData.TryGetRendererFeature(out feature))
             {
@@ -136,8 +132,7 @@ namespace HeroFangame.Camera
                 RestartFade(targetOn: false);
             }
             // else: stale release for a kind that doesn't currently own the
-            // screen (e.g. Heat Vision bailing out because Flight took
-            // over) -- ignore, must not clear Flight's effect.
+            // screen -- ignore.
         }
 
         /// <summary>
@@ -202,7 +197,6 @@ namespace HeroFangame.Camera
         {
             Kind.HeatVision => fadeIn ? heatVisionFadeInDuration : heatVisionFadeOutDuration,
             Kind.FreezeBreath => fadeIn ? freezeBreathFadeInDuration : freezeBreathFadeOutDuration,
-            Kind.Flight => fadeIn ? flightFadeInDuration : flightFadeOutDuration,
             _ => 0.25f,
         };
 
@@ -210,7 +204,6 @@ namespace HeroFangame.Camera
         {
             Kind.HeatVision => heatVisionInstance,
             Kind.FreezeBreath => freezeBreathInstance,
-            Kind.Flight => flightInstance,
             _ => null,
         };
 
@@ -218,7 +211,6 @@ namespace HeroFangame.Camera
         {
             Kind.HeatVision => heatVisionSource,
             Kind.FreezeBreath => freezeBreathSource,
-            Kind.Flight => flightSource,
             _ => null,
         };
     }

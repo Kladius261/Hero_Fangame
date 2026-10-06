@@ -8,9 +8,8 @@ namespace HeroFangame.Core
     /// material (ChargeShockwave), triggered on demand via PlayAt(point) —
     /// currently used for Flight's Charge attack crashing into a wall or
     /// enemy. Repositions this pre-placed object to the impact point and
-    /// drives the material's _Progress property from 0 to 1 over duration,
-    /// same pre-placed/repositioned convention as flightCrashVFX and
-    /// flightChargeDebrisVFX (no Instantiate/Destroy, no pooling). Animates
+    /// drives the material's _Progress property from 0 to 1 over duration
+    /// (no Instantiate/Destroy, no pooling). Animates
     /// on unscaled time and is restart-safe, same convention as
     /// HitSquashEffect/FlashEffect. Uses a MaterialPropertyBlock instead of
     /// material.SetFloat so no material instance is leaked.

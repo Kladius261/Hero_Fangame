@@ -79,6 +79,7 @@ namespace HeroFangame.Interactables
         private bool isGrabbed;
         private bool hasExploded;
         private bool pendingDamageAbsorption;
+        private bool suppressNextBoomVfx;
         private Coroutine throwRoutine;
 
         public bool IsFrozen => state == FreezeState.Frozen;
@@ -174,6 +175,21 @@ namespace HeroFangame.Interactables
             bool result = pendingDamageAbsorption;
             pendingDamageAbsorption = false;
             return result;
+        }
+
+        /// <summary>
+        /// Called by an attacker that's about to deal the killing hit and
+        /// already plays its own crash/impact VFX on top of this explosion
+        /// (currently just Flight's Charge-Crash) -- lets that VFX take
+        /// priority instead of the two bursts overlapping. One-shot, same
+        /// consume-on-use convention as ConsumeDamageAbsorption: set right
+        /// before the attack's own TakeDamage call, consumed inside Explode
+        /// below the instant it fires, so it can never leak into some later,
+        /// unrelated explosion.
+        /// </summary>
+        public void SuppressNextExplosionVfx()
+        {
+            suppressNextBoomVfx = true;
         }
 
         private void Freeze()
@@ -343,7 +359,14 @@ namespace HeroFangame.Interactables
             HitStop.GetOrCreate()?.Trigger(explosionHitStopDuration);
             Haptics.GetOrCreate()?.Pulse(explosionHapticDuration, explosionHapticLowFrequency, explosionHapticHighFrequency);
 
-            SpawnCartoonBoomCluster();
+            if (suppressNextBoomVfx)
+            {
+                suppressNextBoomVfx = false;
+            }
+            else
+            {
+                SpawnCartoonBoomCluster();
+            }
 
             AttackUtility.OverlapCircleAndDamageRadial(
                 transform.position,

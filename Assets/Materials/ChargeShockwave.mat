@@ -46,7 +46,7 @@ Material:
     - _QueueOffset: 0
     - _RingThickness: 0.08
     m_Colors:
-    - _RingColor: {r: 5, g: 6.5, b: 8, a: 1}
+    - _RingColor: {r: 8, g: 7.3, b: 3.2, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &5426239601491130975
