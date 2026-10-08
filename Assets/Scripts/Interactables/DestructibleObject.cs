@@ -4,6 +4,7 @@ using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Camera;
 using HeroFangame.Enemy;
+using HeroFangame.UI;
 
 namespace HeroFangame.Interactables
 {
@@ -80,6 +81,7 @@ namespace HeroFangame.Interactables
         private Color baseColor;
         private bool isGrabbed;
         private Coroutine throwRoutine;
+        private bool suppressNextFreezeBreakPopup;
 
         public bool IsFrozen => state == FreezeState.Frozen;
         public bool IsGrabbed => isGrabbed;
@@ -163,6 +165,7 @@ namespace HeroFangame.Interactables
             CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
             Haptics.GetOrCreate()?.Pulse(freezeHapticDuration, freezeHapticLowFrequency, freezeHapticHighFrequency);
             ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
+            TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.FullFreeze, transform.position);
         }
 
         private void Thaw(bool shattered)
@@ -220,6 +223,28 @@ namespace HeroFangame.Interactables
             HitStop.GetOrCreate()?.Trigger(iceBreakHitStopDuration);
             Haptics.GetOrCreate()?.Pulse(iceBreakHapticDuration, iceBreakHapticLowFrequency, iceBreakHapticHighFrequency);
             squashEffect?.PlaySquash(breakDirection);
+
+            if (suppressNextFreezeBreakPopup)
+            {
+                suppressNextFreezeBreakPopup = false;
+            }
+            else
+            {
+                TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.FreezeBreak, transform.position);
+            }
+        }
+
+        /// <summary>
+        /// One-shot veto for the FreezeBreak text popup that HandleDamaged
+        /// would otherwise spawn on this object's ice breaking — called by
+        /// Flight's Charge-Crash right before its own TakeDamage call, since
+        /// the crash VFX already covers that beat and a FreezeBreak burst
+        /// would visibly overlap it. Same consume-on-use convention as
+        /// ExplosiveObject.SuppressNextExplosionVfx.
+        /// </summary>
+        public void SuppressNextFreezeBreakPopup()
+        {
+            suppressNextFreezeBreakPopup = true;
         }
 
         /// <summary>
@@ -317,10 +342,12 @@ namespace HeroFangame.Interactables
                 // covers the whole landing impact so a frozen throw feels
                 // exactly like an unfrozen one, plus the ice breaking.
                 Thaw(shattered: true);
+                TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.FreezeBreak, transform.position);
             }
             else
             {
                 DustParticle.SpawnCluster(dustParticlePrefab, transform.position + Vector3.up * dustSpawnHeightOffset);
+                TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.Throw, transform.position);
             }
 
             damageable.TakeDamage(throwSelfDamage, new DamageInfo(thrower, Vector2.zero, 0f));

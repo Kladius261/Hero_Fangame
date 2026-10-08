@@ -2,6 +2,7 @@ using UnityEngine;
 using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Camera;
+using HeroFangame.UI;
 using BeamHitResult = HeroFangame.Combat.AttackUtility.BeamHitResult;
 
 namespace HeroFangame.Player
@@ -76,6 +77,7 @@ namespace HeroFangame.Player
         private float tapPulseTimeRemaining;
         private bool isBeamActive;
         private GameObject distortionEffectInstance;
+        private TextPopupHandle textPopupHandle;
 
         private AudioPitchWobble pitchWobble;
 
@@ -266,9 +268,12 @@ namespace HeroFangame.Player
                 {
                     distortionEffectInstance = Instantiate(distortionEffectPrefab, transform.position, Quaternion.identity);
                 }
+                textPopupHandle = TextPopupManager.Instance?.BeginSustained(TextPopupManager.Category.HeatVision, transform.position);
             }
             isBeamActive = true;
             pitchWobble.Apply(beamAudioSource, Time.deltaTime);
+            textPopupHandle?.UpdatePosition(transform.position);
+            textPopupHandle?.Tick(Time.deltaTime, beamTickInterval);
             controller.LockMovement(this);
             if (beamRenderer != null)
             {
@@ -304,6 +309,8 @@ namespace HeroFangame.Player
 
             isBeamActive = false;
             controller.UnlockMovement(this);
+            textPopupHandle?.Release();
+            textPopupHandle = null;
             beamRenderer?.SetActive(false);
             impactEffect?.StopContact();
             if (distortionEffectInstance != null)

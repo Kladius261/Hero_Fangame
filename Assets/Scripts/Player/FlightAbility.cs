@@ -2,7 +2,9 @@ using UnityEngine;
 using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Camera;
+using HeroFangame.Enemy;
 using HeroFangame.Interactables;
+using HeroFangame.UI;
 
 namespace HeroFangame.Player
 {
@@ -80,6 +82,8 @@ namespace HeroFangame.Player
         [SerializeField] private float chargeSpeed = 30f;
         [Tooltip("How fast Up/Down steers the dash once it's firing, in degrees/second, mirroring Heat Vision/Freeze Breath's aim sweep (see AbilityAimController).")]
         [SerializeField] private float chargeAimSweepSpeedDegreesPerSecond = 180f;
+        [Tooltip("How fast the Charge sound-effect popup's comic lettering grows while the dash is in flight (see TextPopupManager.Category.FlightCharge).")]
+        [SerializeField] private float flightChargeLetterGrowthInterval = 0.12f;
         [SerializeField] private int chargeDamage = 3;
         [SerializeField] private float chargeKnockbackForce = 14f;
         [Tooltip("Secondary splash damage/knockback around the crash point, hitting anything near the primary target/wall a Charge slams into (which itself still takes the full chargeDamage/chargeKnockbackForce above via its own direct hit).")]
@@ -129,6 +133,7 @@ namespace HeroFangame.Player
         private Vector2 chargeDirection;
         private Vector2 chargeHorizontalFacing;
         private AbilityAimController chargeAimController;
+        private TextPopupHandle chargeTextPopupHandle;
 
         private float hoverBobTimer;
         private float hoverBobOffset;
@@ -191,6 +196,7 @@ namespace HeroFangame.Player
                     // dash itself only ends via HandleChargeCollision below.
                     chargeDirection = chargeAimController.Resolve(isNewActivation: false, 0f, input.MoveInput, chargeHorizontalFacing, Time.deltaTime);
                     controller.SetVelocityOverride(chargeDirection * chargeSpeed);
+                    chargeTextPopupHandle?.Tick(Time.deltaTime, flightChargeLetterGrowthInterval);
                     break;
             }
         }
@@ -289,6 +295,7 @@ namespace HeroFangame.Player
                 maxScale: 2.6f,
                 verticalSpreadScale: 0f);
             ghostTrail?.StartTrail(flightHoverGhostTrailInterval);
+            TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.FlightTakeoff, transform.position);
 
             AttackUtility.OverlapCircleAndDamageRadial(
                 transform.position,
@@ -332,6 +339,7 @@ namespace HeroFangame.Player
                 maxScale: 2.6f,
                 verticalSpreadScale: 0f);
             playerSquash?.PlaySquash(Vector2.right);
+            TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.FlightLanding, transform.position);
             CameraShake.GetOrCreate()?.Pulse(landingShakeDuration, landingShakeAmplitude);
             Haptics.GetOrCreate()?.Pulse(landingHapticDuration, landingHapticLowFrequency, landingHapticHighFrequency);
 
@@ -364,6 +372,7 @@ namespace HeroFangame.Player
             // distinctly from the sustained hover trail.
             ghostTrail?.StartTrail(restart: true);
             FullScreenAbilityEffect.Instance?.SetFlightWindActive(true);
+            chargeTextPopupHandle = TextPopupManager.Instance?.BeginSustained(TextPopupManager.Category.FlightCharge, transform.position);
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
@@ -402,6 +411,8 @@ namespace HeroFangame.Player
 
             flightChargeShockwaveVFX?.PlayAt(collision.GetContact(0).point);
             SpawnChargeCrashCluster(collision.GetContact(0).point);
+            chargeTextPopupHandle?.Release();
+            chargeTextPopupHandle = null;
             EndCharge();
         }
 
@@ -474,6 +485,13 @@ namespace HeroFangame.Player
             // overlapping two cartoon bursts at the same point -- let the
             // Charge-Crash VFX take priority instead.
             collision.collider.GetComponentInParent<ExplosiveObject>()?.SuppressNextExplosionVfx();
+
+            // Same idea for a frozen enemy/destructible: the Charge-Crash
+            // VFX already covers this impact, so veto the FreezeBreak text
+            // popup that HandleDamaged would otherwise spawn on the ice
+            // breaking.
+            collision.collider.GetComponentInParent<EnemyRobot>()?.SuppressNextFreezeBreakPopup();
+            collision.collider.GetComponentInParent<DestructibleObject>()?.SuppressNextFreezeBreakPopup();
 
             damageable.TakeDamage(chargeDamage, new DamageInfo(gameObject, awayDir, chargeKnockbackForce));
 

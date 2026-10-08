@@ -2,6 +2,7 @@ using UnityEngine;
 using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Camera;
+using HeroFangame.UI;
 
 namespace HeroFangame.Player
 {
@@ -53,6 +54,10 @@ namespace HeroFangame.Player
         [SerializeField] private float aimSweepSpeedDegreesPerSecond = 180f;
         [SerializeField] private float aimSweepAccelerationDegreesPerSecondSquared = 720f;
 
+        [Header("Sound Effect Popup")]
+        [Tooltip("How fast the Freeze Breath sound-effect popup's comic lettering grows while the cone is held (see TextPopupManager.Category.FreezeBreath).")]
+        [SerializeField] private float freezeBreathLetterGrowthInterval = 0.12f;
+
         private PlayerInputHandler input;
         private PlayerController controller;
         private PowerGauge power;
@@ -64,6 +69,7 @@ namespace HeroFangame.Player
         private float tapPulseTimeRemaining;
         private bool isConeActive;
         private AudioPitchWobble pitchWobble;
+        private TextPopupHandle textPopupHandle;
 
         private void Awake()
         {
@@ -238,9 +244,12 @@ namespace HeroFangame.Player
             {
                 breathAudioSource?.Play();
                 pitchWobble.Restart();
+                textPopupHandle = TextPopupManager.Instance?.BeginSustained(TextPopupManager.Category.FreezeBreath, transform.position);
             }
             isConeActive = true;
             pitchWobble.Apply(breathAudioSource, Time.deltaTime);
+            textPopupHandle?.UpdatePosition(transform.position);
+            textPopupHandle?.Tick(Time.deltaTime, freezeBreathLetterGrowthInterval);
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.FreezeBreath, true);
 
             // Visually clip the cone at the nearest hittable surface so the
@@ -280,6 +289,8 @@ namespace HeroFangame.Player
                 return;
             }
             isConeActive = false;
+            textPopupHandle?.Release();
+            textPopupHandle = null;
             coneEffect?.StopCone();
             coneEffect?.StopBoundaryContact();
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.FreezeBreath, false);

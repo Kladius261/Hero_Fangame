@@ -4,6 +4,7 @@ using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Camera;
 using HeroFangame.Enemy;
+using HeroFangame.UI;
 
 namespace HeroFangame.Interactables
 {
@@ -203,6 +204,7 @@ namespace HeroFangame.Interactables
             CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
             Haptics.GetOrCreate()?.Pulse(freezeHapticDuration, freezeHapticLowFrequency, freezeHapticHighFrequency);
             ApplyKnockbackAwayFromPlayer(freezeKnockbackDistance);
+            TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.FullFreeze, transform.position);
         }
 
         private void Thaw(bool shattered)

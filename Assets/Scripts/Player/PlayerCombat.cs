@@ -2,6 +2,7 @@ using UnityEngine;
 using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Camera;
+using HeroFangame.UI;
 
 namespace HeroFangame.Player
 {
@@ -85,16 +86,20 @@ namespace HeroFangame.Player
             Vector2 origin = (Vector2)transform.position + controller.Facing * hitboxDistance;
             float angle = Vector2.SignedAngle(Vector2.right, controller.Facing);
 
-            Collider2D[] hits = AttackUtility.OverlapBoxAndDamage(
-                origin,
-                hitboxSize,
-                angle,
-                hittableLayers,
-                damage,
-                gameObject,
-                controller.Facing,
-                knockbackForce,
-                out int hitCount);
+            Collider2D[] hits = AttackUtility.OverlapBox(origin, hitboxSize, angle, hittableLayers, out int hitCount);
+
+            // Capture each target's frozen state before damage lands --
+            // HandleDamaged already spawns its own FreezeBreak popup when a
+            // hit shatters ice, so RegularHit's popup below must be skipped
+            // for those targets to avoid both popups appearing at once.
+            bool[] wasFrozen = new bool[hitCount];
+            for (int i = 0; i < hitCount; i++)
+            {
+                var hit = hits[i];
+                wasFrozen[i] = hit != null && (hit.GetComponentInParent<IFreezable>()?.IsFrozen ?? false);
+            }
+
+            AttackUtility.ApplyDamage(hits, hitCount, damage, gameObject, controller.Facing, knockbackForce);
 
             bool landedHit = false;
             for (int i = 0; i < hitCount; i++)
@@ -110,6 +115,10 @@ namespace HeroFangame.Player
                     landedHit = true;
                     hitEffect.PlayRandomAt(hit.bounds.center);
                     hitSound.PlayRandom();
+                    if (!wasFrozen[i])
+                    {
+                        TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.RegularHit, hit.bounds.center);
+                    }
                     hit.GetComponentInParent<HitSquashEffect>()?.PlaySquash(controller.Facing);
                 }
             }

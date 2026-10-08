@@ -4,6 +4,7 @@ using HeroFangame.Camera;
 using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Interactables;
+using HeroFangame.UI;
 
 namespace HeroFangame.Enemy
 {
@@ -115,6 +116,7 @@ namespace HeroFangame.Enemy
         private float wanderTimer;
         private Coroutine throwRoutine;
         private bool wasFrozenWhenGrabbed;
+        private bool suppressNextFreezeBreakPopup;
 
         public bool IsFrozen => state == State.Frozen;
         public bool IsGrabbed => state == State.Grabbed;
@@ -302,9 +304,31 @@ namespace HeroFangame.Enemy
                 HitStop.GetOrCreate()?.Trigger(iceBreakHitStopDuration);
                 Haptics.GetOrCreate()?.Pulse(iceBreakHapticDuration, iceBreakHapticLowFrequency, iceBreakHapticHighFrequency);
                 squashEffect?.PlaySquash(breakDirection);
+
+                if (suppressNextFreezeBreakPopup)
+                {
+                    suppressNextFreezeBreakPopup = false;
+                }
+                else
+                {
+                    TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.FreezeBreak, transform.position);
+                }
             }
 
             knockbackTimeRemaining = knockbackRecoveryTime;
+        }
+
+        /// <summary>
+        /// One-shot veto for the FreezeBreak text popup that HandleDamaged
+        /// would otherwise spawn on this robot's ice breaking — called by
+        /// Flight's Charge-Crash right before its own TakeDamage call, since
+        /// the crash VFX already covers that beat and a FreezeBreak burst
+        /// would visibly overlap it. Same consume-on-use convention as
+        /// ExplosiveObject.SuppressNextExplosionVfx.
+        /// </summary>
+        public void SuppressNextFreezeBreakPopup()
+        {
+            suppressNextFreezeBreakPopup = true;
         }
 
         public void AddFreezeExposure(float amount, bool isNewActivation)
@@ -348,6 +372,7 @@ namespace HeroFangame.Enemy
             freezeVisual?.PlayFreezeIn();
             CameraShake.GetOrCreate()?.Pulse(freezeShakeDuration);
             Haptics.GetOrCreate()?.Pulse(freezeHapticDuration, freezeHapticLowFrequency, freezeHapticHighFrequency);
+            TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.FullFreeze, transform.position);
         }
 
         /// <summary>
@@ -513,10 +538,12 @@ namespace HeroFangame.Enemy
             {
                 wasFrozenWhenGrabbed = false;
                 Thaw(shattered: true);
+                TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.FreezeBreak, transform.position);
             }
             else
             {
                 DustParticle.SpawnCluster(dustParticlePrefab, transform.position + Vector3.up * dustSpawnHeightOffset);
+                TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.Throw, transform.position);
             }
 
             damageable.TakeDamage(throwSelfDamage, new DamageInfo(thrower, Vector2.zero, 0f));

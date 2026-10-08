@@ -241,7 +241,13 @@
       "Bash(grep -rn \"HeatVisionDistortion\\\\|distortionEffect\" \"C:\\\\Users\\\\gohun\\\\OneDrive\\\\Desktop\\\\UnityProject\\\\Hero_Fangame\\\\Assets\" --include=*.prefab --include=*.unity -l)",
       "Bash(MSYS_NO_PATHCONV=1 unity command set_material_properties --material \"Assets/Materials/ChargeShockwave.mat\" --properties '{\"_RingColor\":[8,7.3,3.2,1]}' --format json --no-pager)",
       "Bash(MSYS_NO_PATHCONV=1 unity command recompile --format json --no-pager)",
-      "Bash(MSYS_NO_PATHCONV=1 unity command recompile_status --format json --no-pager)"
+      "Bash(MSYS_NO_PATHCONV=1 unity command recompile_status --format json --no-pager)",
+      "Bash(python3 -c \"import uuid; print\\(uuid.uuid4\\(\\).hex\\)\")",
+      "Bash(powershell -Command \"[math]::Abs\\(\\(New-Object Random\\).Next\\(100000000,999999999\\)\\) * 10 + \\(Get-Random -Minimum 0 -Maximum 9\\)\")",
+      "Bash(powershell -Command '$r=[System.Random]::new\\(\\); $r.NextInt64\\(1,9223372036854775807\\)')",
+      "Bash(powershell -Command '$r=[System.Random]::new\\(\\); $r.Next\\(100000000,999999999\\).ToString\\(\\) + $r.Next\\(100000000,999999999\\).ToString\\(\\)')",
+      "Bash(ls *.sln)",
+      "Read(//mnt/c/Users/gohun/OneDrive/Desktop/UnityProject/Hero_Fangame/**)"
     ]
   }
 }
