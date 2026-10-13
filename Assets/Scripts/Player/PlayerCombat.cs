@@ -2,6 +2,7 @@ using UnityEngine;
 using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Camera;
+using HeroFangame.Interactables;
 using HeroFangame.UI;
 
 namespace HeroFangame.Player
@@ -88,15 +89,17 @@ namespace HeroFangame.Player
 
             Collider2D[] hits = AttackUtility.OverlapBox(origin, hitboxSize, angle, hittableLayers, out int hitCount);
 
-            // Capture each target's frozen state before damage lands --
-            // HandleDamaged already spawns its own FreezeBreak popup when a
-            // hit shatters ice, so RegularHit's popup below must be skipped
-            // for those targets to avoid both popups appearing at once.
+            // Capture each target's frozen/explosive state before damage lands
+            // -- HandleDamaged already spawns its own FreezeBreak or Explosion
+            // popup for those cases, so RegularHit's popup below must be
+            // skipped for those targets to avoid both popups appearing at once.
             bool[] wasFrozen = new bool[hitCount];
+            bool[] isExplosive = new bool[hitCount];
             for (int i = 0; i < hitCount; i++)
             {
                 var hit = hits[i];
                 wasFrozen[i] = hit != null && (hit.GetComponentInParent<IFreezable>()?.IsFrozen ?? false);
+                isExplosive[i] = hit != null && hit.GetComponentInParent<ExplosiveObject>() != null;
             }
 
             AttackUtility.ApplyDamage(hits, hitCount, damage, gameObject, controller.Facing, knockbackForce);
@@ -115,7 +118,7 @@ namespace HeroFangame.Player
                     landedHit = true;
                     hitEffect.PlayRandomAt(hit.bounds.center);
                     hitSound.PlayRandom();
-                    if (!wasFrozen[i])
+                    if (!wasFrozen[i] && !isExplosive[i])
                     {
                         TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.RegularHit, hit.bounds.center);
                     }
