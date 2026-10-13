@@ -62,12 +62,9 @@ namespace HeroFangame.Interactables
         [SerializeField] private float explosionFlashDuration = 0.08f;
         [SerializeField] private float explosionVfxLifetime = 0.6f;
         [SerializeField] private GameObject cartoonBoomVfxPrefab;
-        [SerializeField] private GameObject cartoonBoomTextVfxPrefab;
-        [SerializeField] private Material[] cartoonBoomTextMaterials;
         [SerializeField] private float cartoonBoomMinScale = 0.4f;
         [SerializeField] private float cartoonBoomMaxScale = 0.7f;
         [SerializeField] private float cartoonBoomVfxLifetime = 1.5f;
-        [SerializeField] private int cartoonBoomTextSortingOrder = 1;
 
         private Damageable damageable;
         private SpriteRenderer spriteRenderer;
@@ -387,15 +384,13 @@ namespace HeroFangame.Interactables
         /// <summary>
         /// Spawns a single PS_CartoonBoom clone centered on the explosion,
         /// with randomized rotation and scale for some per-explosion
-        /// variety. Also spawns a single PS_CartoonBoomText instance at the
-        /// same spot and moment, rendered above it via a bumped
-        /// sortingOrder, with its material swapped at random from
-        /// cartoonBoomTextMaterials (the BoomText1-5 pool) so a different
-        /// sound-effect-text sprite shows each time. Clones are detached
-        /// copies — unaffected by this object's own destruction below —
-        /// and clean themselves up on cartoonBoomVfxLifetime, decoupled
-        /// from the exploded object's own destroy timer
-        /// (explosionVfxLifetime).
+        /// variety. The comic-book boom text is handled by the
+        /// TextPopupManager's Explosion category instead of a particle
+        /// system, so it stays visually consistent (color/lighting) with
+        /// every other popup in the game. Clone is a detached copy —
+        /// unaffected by this object's own destruction below — and cleans
+        /// itself up on cartoonBoomVfxLifetime, decoupled from the exploded
+        /// object's own destroy timer (explosionVfxLifetime).
         /// </summary>
         private void SpawnCartoonBoomCluster()
         {
@@ -407,22 +402,7 @@ namespace HeroFangame.Interactables
                 Destroy(clone, cartoonBoomVfxLifetime);
             }
 
-            if (cartoonBoomTextVfxPrefab != null)
-            {
-                var textClone = Instantiate(cartoonBoomTextVfxPrefab, transform.position, Quaternion.identity);
-                Material textMaterial = (cartoonBoomTextMaterials != null && cartoonBoomTextMaterials.Length > 0)
-                    ? cartoonBoomTextMaterials[Random.Range(0, cartoonBoomTextMaterials.Length)]
-                    : null;
-                foreach (var particleRenderer in textClone.GetComponentsInChildren<ParticleSystemRenderer>())
-                {
-                    particleRenderer.sortingOrder = cartoonBoomTextSortingOrder;
-                    if (textMaterial != null)
-                    {
-                        particleRenderer.material = textMaterial;
-                    }
-                }
-                Destroy(textClone, cartoonBoomVfxLifetime);
-            }
+            TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.Explosion, transform.position);
         }
 
         private IEnumerator HideSpriteAfterFlash()

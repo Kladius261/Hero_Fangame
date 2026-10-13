@@ -117,12 +117,9 @@ namespace HeroFangame.Player
         [Header("Charge-Crash VFX")]
         [Tooltip("Cartoon crash burst, instantiated at the Charge dash's impact point on every Charge-ending collision (enemy or wall). Mirrors ExplosiveObject's cartoon boom cluster: random Z rotation + random scale, destroyed after chargeCrashVfxLifetime.")]
         [SerializeField] private GameObject chargeCrashVfxPrefab;
-        [SerializeField] private GameObject chargeCrashTextVfxPrefab;
-        [SerializeField] private Material[] chargeCrashTextMaterials;
         [SerializeField] private float chargeCrashMinScale = 0.4f;
         [SerializeField] private float chargeCrashMaxScale = 0.7f;
         [SerializeField] private float chargeCrashVfxLifetime = 1.5f;
-        [SerializeField] private int chargeCrashTextSortingOrder = 1;
 
         private PlayerInputHandler input;
         private PlayerController controller;
@@ -439,11 +436,10 @@ namespace HeroFangame.Player
         /// <summary>
         /// Spawns a single PS_CartoonCrash clone centered on the Charge
         /// dash's impact point, with randomized rotation and scale for some
-        /// per-crash variety. Also spawns a single PS_CartoonCrashText
-        /// instance at the same spot and moment, rendered above it via a
-        /// bumped sortingOrder, with its material swapped at random from
-        /// chargeCrashTextMaterials (the CrashText1-5 pool) so a different
-        /// sound-effect-text sprite shows each time. Mirrors
+        /// per-crash variety. The comic-book crash text is handled by the
+        /// TextPopupManager's ChargeCrash category instead of a particle
+        /// system, so it stays visually consistent (color/lighting) with
+        /// every other popup in the game. Mirrors
         /// ExplosiveObject.SpawnCartoonBoomCluster. Fires on every
         /// Charge-ending collision (enemy or wall) via HandleChargeCollision.
         /// </summary>
@@ -457,22 +453,7 @@ namespace HeroFangame.Player
                 Destroy(clone, chargeCrashVfxLifetime);
             }
 
-            if (chargeCrashTextVfxPrefab != null)
-            {
-                var textClone = Instantiate(chargeCrashTextVfxPrefab, point, Quaternion.identity);
-                Material textMaterial = (chargeCrashTextMaterials != null && chargeCrashTextMaterials.Length > 0)
-                    ? chargeCrashTextMaterials[Random.Range(0, chargeCrashTextMaterials.Length)]
-                    : null;
-                foreach (var particleRenderer in textClone.GetComponentsInChildren<ParticleSystemRenderer>())
-                {
-                    particleRenderer.sortingOrder = chargeCrashTextSortingOrder;
-                    if (textMaterial != null)
-                    {
-                        particleRenderer.material = textMaterial;
-                    }
-                }
-                Destroy(textClone, chargeCrashVfxLifetime);
-            }
+            TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.ChargeCrash, point);
         }
 
         private void HandleChargeHitDamageable(Damageable damageable, Collision2D collision)

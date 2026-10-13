@@ -247,7 +247,12 @@
       "Bash(powershell -Command '$r=[System.Random]::new\\(\\); $r.NextInt64\\(1,9223372036854775807\\)')",
       "Bash(powershell -Command '$r=[System.Random]::new\\(\\); $r.Next\\(100000000,999999999\\).ToString\\(\\) + $r.Next\\(100000000,999999999\\).ToString\\(\\)')",
       "Bash(ls *.sln)",
-      "Read(//mnt/c/Users/gohun/OneDrive/Desktop/UnityProject/Hero_Fangame/**)"
+      "Read(//mnt/c/Users/gohun/OneDrive/Desktop/UnityProject/Hero_Fangame/**)",
+      "Bash(find Assets -name \"*.prefab\" -exec grep -l \"77bad48686638634cb461c9f458e621a\\\\|0953db02bd2a74a4bb353abe24599a65\\\\|f8cd45fe778383f4198b5fa00c2cda3f\\\\|9412da207c2410f4f98bd8809e01dff3\" {} \\\\;)",
+      "Bash(find Assets/Prefabs/Effects -name \"*.meta\" -exec grep -l \"77bad48686638634cb461c9f458e621a\\\\|0953db02bd2a74a4bb353abe24599a65\\\\|f8cd45fe778383f4198b5fa00c2cda3f\\\\|9412da207c2410f4f98bd8809e01dff3\" {} \\\\;)",
+      "Bash(ls -la Assets/Sprites/Boom/*.mat)",
+      "Bash(ls -la Assets/Sprites/Crash/*.mat)",
+      "Bash(grep -n \"gradientTop: {r: 1, g: 0.7411765\" \"C:\\\\Users\\\\gohun\\\\OneDrive\\\\Desktop\\\\UnityProject\\\\Hero_Fangame\\\\Assets\\\\Scenes\\\\Prototype.unity\")"
     ]
   }
 }

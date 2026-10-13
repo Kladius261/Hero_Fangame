@@ -26,7 +26,9 @@ namespace HeroFangame.UI
             FlightLanding,
             FlightCharge,
             FreezeBreak,
-            Throw
+            Throw,
+            ChargeCrash,
+            Explosion
         }
 
         [System.Serializable]
@@ -228,6 +230,34 @@ namespace HeroFangame.UI
             duration = 0.5f
         };
 
+        [Header("Charge-Crash (fixed burst, replaces PS_CartoonCrashText)")]
+        [SerializeField]
+        private FixedBurstConfig chargeCrash = new FixedBurstConfig
+        {
+            words = new[] { "WHAAAM!", "KRA-BOOM!", "BRAKKA!", "K-THOOM!", "KRA-WHAM!" },
+            fontSize = 2f,
+            gradientTop = HexColor("FFFFFF"),
+            gradientBottom = HexColor("FFFB00"),
+            outlineColor = HexColor("C8CA00"),
+            outlineThickness = 0.4f,
+            zRotationRangeDegrees = 0f,
+            duration = 1f
+        };
+
+        [Header("Explosion (fixed burst, replaces PS_CartoonBoomText)")]
+        [SerializeField]
+        private FixedBurstConfig explosion = new FixedBurstConfig
+        {
+            words = new[] { "BOOM!", "KABAM!", "THOOM!", "BWOOM!", "BADOOM!" },
+            fontSize = 1.5f,
+            gradientTop = HexColor("FFBD00"),
+            gradientBottom = HexColor("FF1400"),
+            outlineColor = HexColor("FF2700"),
+            outlineThickness = 0.4f,
+            zRotationRangeDegrees = 0f,
+            duration = 1f
+        };
+
         private void Awake()
         {
             Instance = this;
@@ -328,6 +358,8 @@ namespace HeroFangame.UI
                 case Category.FlightLanding: return flightLanding;
                 case Category.FreezeBreak: return freezeBreak;
                 case Category.Throw: return throwPopup;
+                case Category.ChargeCrash: return chargeCrash;
+                case Category.Explosion: return explosion;
                 default:
                     Debug.LogError($"TextPopupManager.SpawnBurst called with sustained category {category} — use BeginSustained instead.");
                     return null;

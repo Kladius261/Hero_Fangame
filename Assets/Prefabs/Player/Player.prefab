@@ -6281,17 +6281,9 @@ MonoBehaviour:
   dustParticlePrefab: {fileID: 3971127363323145994, guid: e6592844abf8e9245a6f9a0621aeb65f, type: 3}
   dustSpawnHeightOffset: -0.75
   chargeCrashVfxPrefab: {fileID: 1562960173952882842, guid: 77bad48686638634cb461c9f458e621a, type: 3}
-  chargeCrashTextVfxPrefab: {fileID: 1562960173952882842, guid: 0953db02bd2a74a4bb353abe24599a65, type: 3}
-  chargeCrashTextMaterials:
-  - {fileID: 2100000, guid: 15530451c78c81444af5d25bcab08ffe, type: 2}
-  - {fileID: 2100000, guid: 177360699d388c94992be362d65c5367, type: 2}
-  - {fileID: 2100000, guid: 46727b84f9618814f8a15e665002e607, type: 2}
-  - {fileID: 2100000, guid: f5a5e21b9739d3e4f9268c248159b308, type: 2}
-  - {fileID: 2100000, guid: e902efbc1275c3d41904f63adb357721, type: 2}
   chargeCrashMinScale: 0.4
   chargeCrashMaxScale: 0.7
   chargeCrashVfxLifetime: 1.5
-  chargeCrashTextSortingOrder: 1
 --- !u!114 &-34217933127708495
 MonoBehaviour:
   m_ObjectHideFlags: 0
