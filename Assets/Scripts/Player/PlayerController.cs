@@ -5,10 +5,10 @@ namespace HeroFangame.Player
 {
     /// <summary>
     /// Free 2D movement (no gravity) and persistent facing direction. Also
-    /// exposes a thin "flight mode" API (movement speed multiplier) and a
-    /// velocity override hook driven entirely by FlightAbility — this class
-    /// stays a dumb movement executor and owns none of the flight/charge
-    /// state itself.
+    /// exposes a thin "flight mode" flag (used only to gate other abilities
+    /// while a Dash is in progress — see IsFlightMode) and a velocity
+    /// override hook driven entirely by FlightAbility — this class stays a
+    /// dumb movement executor and owns none of the dash/charge state itself.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(PlayerInputHandler))]
@@ -16,7 +16,6 @@ namespace HeroFangame.Player
     {
         [Header("Movement")]
         [SerializeField] private float moveSpeed = 6f;
-        [SerializeField] private float flightMoveSpeedMultiplier = 2f;
         [SerializeField] private float grabStanceMoveSpeedMultiplier = 0.75f;
 
         private Rigidbody2D rb;
@@ -102,7 +101,7 @@ namespace HeroFangame.Player
                 return;
             }
 
-            float speed = moveSpeed * (IsFlightMode ? flightMoveSpeedMultiplier : 1f) * (IsGrabStance ? grabStanceMoveSpeedMultiplier : 1f);
+            float speed = moveSpeed * (IsGrabStance ? grabStanceMoveSpeedMultiplier : 1f);
             rb.linearVelocity = input.MoveInput.normalized * speed;
         }
     }

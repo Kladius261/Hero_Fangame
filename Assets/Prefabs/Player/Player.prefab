@@ -6258,7 +6258,7 @@ MonoBehaviour:
   hoverBobFrequency: 1.4
   flightHoverGhostTrailInterval: 0.02
   doubleTapWindow: 0.3
-  chargeSpeed: 30
+  chargeSpeed: 25.5
   chargeAimSweepSpeedDegreesPerSecond: 180
   chargeDamage: 3
   chargeKnockbackForce: 14

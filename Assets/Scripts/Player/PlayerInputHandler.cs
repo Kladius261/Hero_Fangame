@@ -26,6 +26,7 @@ namespace HeroFangame.Player
         public bool HeatVisionHeld { get; private set; }
         public bool FreezeBreathHeld { get; private set; }
         public bool FlightHeld { get; private set; }
+        public bool FlightPressed { get; private set; }
 
         public event System.Action OnPunch;
         public event System.Action OnGrab;
@@ -70,6 +71,7 @@ namespace HeroFangame.Player
             HeatVisionHeld = heatVisionAction != null && heatVisionAction.IsPressed();
             FreezeBreathHeld = freezeBreathAction != null && freezeBreathAction.IsPressed();
             FlightHeld = flightAction != null && flightAction.IsPressed();
+            FlightPressed = flightAction != null && flightAction.WasPressedThisFrame();
         }
 
         private void HandlePunch(InputAction.CallbackContext ctx)

@@ -5,15 +5,14 @@ namespace HeroFangame.Player
 {
     /// <summary>
     /// Spawns short-lived, fading afterimage clones of the player's sprite
-    /// while active — used both by Flight's sustained hover (a sparser
-    /// trail for as long as Flight is held) and by Charge's fast
-    /// uninterruptible dash (a denser trail, restarted at Charge's own
-    /// interval so the two speeds read distinctly). No pooling: clones are
-    /// cheap, short-lived, and flight is infrequent enough overall that a
-    /// self-destructing GameObject per spawn is simpler than adding a
-    /// pooling system the project doesn't otherwise have. Fades on unscaled
-    /// time (matching HitSquashEffect/CameraShake) so trail ghosts still
-    /// animate smoothly through a HitStop freeze-frame.
+    /// while active — used by FlightAbility's one-shot Dash for its whole
+    /// duration, from the initial burst through to a Crash or an early
+    /// cancel. No pooling: clones are cheap, short-lived, and the Dash is
+    /// infrequent enough overall that a self-destructing GameObject per
+    /// spawn is simpler than adding a pooling system the project doesn't
+    /// otherwise have. Fades on unscaled time (matching
+    /// HitSquashEffect/CameraShake) so trail ghosts still animate smoothly
+    /// through a HitStop freeze-frame.
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer))]
     public class GhostTrailEffect : MonoBehaviour
@@ -39,8 +38,7 @@ namespace HeroFangame.Player
         /// serialized default if null). If a trail is already running and
         /// <paramref name="restart"/> is false, this is a no-op — callers
         /// that need to switch an already-running trail to a different
-        /// density (e.g. Flying hover switching to Charge's denser rate,
-        /// or back) must pass restart: true.
+        /// density must pass restart: true.
         /// </summary>
         public void StartTrail(float? spawnInterval = null, bool restart = false)
         {

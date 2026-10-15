@@ -8,7 +8,7 @@ namespace HeroFangame.UI
     /// PopUpText prefab reference and every category's tunables, and
     /// exposes two spawn entry points:
     /// - SpawnBurst: fixed word, fixed duration, fire-and-forget
-    ///   (RegularHit, FullFreeze, FlightTakeoff, FlightLanding).
+    ///   (RegularHit, FullFreeze, FreezeBreak, Throw, ChargeCrash, Explosion).
     /// - BeginSustained: procedurally-growing "comic lettering" text tied
     ///   to an ability's hold duration (HeatVision, FreezeBreath,
     ///   FlightCharge) — returns a TextPopupHandle the caller drives via
@@ -22,8 +22,6 @@ namespace HeroFangame.UI
             HeatVision,
             FreezeBreath,
             FullFreeze,
-            FlightTakeoff,
-            FlightLanding,
             FlightCharge,
             FreezeBreak,
             Throw,
@@ -156,34 +154,6 @@ namespace HeroFangame.UI
             duration = 0.5f
         };
 
-        [Header("Flight Takeoff (fixed burst)")]
-        [SerializeField]
-        private FixedBurstConfig flightTakeoff = new FixedBurstConfig
-        {
-            words = new[] { "WHOOSH!", "FWOOM!", "VWOOM!", "SHOOM!", "FWUMP!", "ZWOOP!" },
-            fontSize = 1.75f,
-            gradientTop = HexColor("FFFFFF"),
-            gradientBottom = HexColor("FFFB00"),
-            outlineColor = HexColor("C8CA00"),
-            outlineThickness = 0.4f,
-            zRotationRangeDegrees = 25f,
-            duration = 0.5f
-        };
-
-        [Header("Flight Landing (fixed burst)")]
-        [SerializeField]
-        private FixedBurstConfig flightLanding = new FixedBurstConfig
-        {
-            words = new[] { "THOOM!", "WHUMP!", "BOOM!", "THUD!", "K-THOOM!", "D-DOOM!", "BADOOM!" },
-            fontSize = 1.75f,
-            gradientTop = HexColor("FFFFFF"),
-            gradientBottom = HexColor("FFFB00"),
-            outlineColor = HexColor("C8CA00"),
-            outlineThickness = 0.4f,
-            zRotationRangeDegrees = 25f,
-            duration = 0.5f
-        };
-
         [Header("Flight Charge (sustained, fixed rotation/position)")]
         [SerializeField]
         private SustainedConfig flightCharge = new SustainedConfig
@@ -265,7 +235,7 @@ namespace HeroFangame.UI
 
         /// <summary>
         /// Fixed word, fixed duration, fire-and-forget. For RegularHit,
-        /// FullFreeze, FlightTakeoff, FlightLanding only.
+        /// FullFreeze, FreezeBreak, Throw, ChargeCrash, Explosion only.
         /// </summary>
         public TextPopup SpawnBurst(Category category, Vector3 worldPosition)
         {
@@ -354,8 +324,6 @@ namespace HeroFangame.UI
             {
                 case Category.RegularHit: return regularHit;
                 case Category.FullFreeze: return fullFreeze;
-                case Category.FlightTakeoff: return flightTakeoff;
-                case Category.FlightLanding: return flightLanding;
                 case Category.FreezeBreak: return freezeBreak;
                 case Category.Throw: return throwPopup;
                 case Category.ChargeCrash: return chargeCrash;
