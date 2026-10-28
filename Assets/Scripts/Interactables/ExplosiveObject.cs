@@ -65,6 +65,9 @@ namespace HeroFangame.Interactables
         [SerializeField] private float cartoonBoomMinScale = 0.4f;
         [SerializeField] private float cartoonBoomMaxScale = 0.7f;
         [SerializeField] private float cartoonBoomVfxLifetime = 1.5f;
+        [Tooltip("One randomly picked (no immediate repeat), layered with explosionClip below. Shared project-wide: this group plays for every ExplosiveObject detonation regardless of cause (regular hit, ice-break-while-frozen, grab-and-throw landing).")]
+        [SerializeField] private AudioClip[] heavyHitClips;
+        [SerializeField] private AudioClip explosionClip;
 
         private Damageable damageable;
         private SpriteRenderer spriteRenderer;
@@ -79,6 +82,15 @@ namespace HeroFangame.Interactables
         private bool pendingDamageAbsorption;
         private bool suppressNextBoomVfx;
         private Coroutine throwRoutine;
+
+        /// <summary>
+        /// Every instance is destroyed after its own single explosion (see
+        /// hasExploded/DestroyAfterDelay below), so an instance field could
+        /// never actually prevent two separate explosions from repeating the
+        /// same heavy-hit clip back to back -- this has to be static, shared
+        /// across every ExplosiveObject for the life of the play session.
+        /// </summary>
+        private static int lastHeavyHitClipIndex = -1;
 
         public bool IsFrozen => state == FreezeState.Frozen;
         public bool IsGrabbed => isGrabbed;
@@ -357,6 +369,7 @@ namespace HeroFangame.Interactables
             CameraShake.GetOrCreate()?.Pulse(explosionShakeDuration, explosionShakeAmplitude);
             HitStop.GetOrCreate()?.Trigger(explosionHitStopDuration);
             Haptics.GetOrCreate()?.Pulse(explosionHapticDuration, explosionHapticLowFrequency, explosionHapticHighFrequency);
+            PlayExplosionSound();
 
             if (suppressNextBoomVfx)
             {
@@ -403,6 +416,39 @@ namespace HeroFangame.Interactables
             }
 
             TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.Explosion, transform.position);
+        }
+
+        /// <summary>
+        /// Shared explosion sound, played for every detonation regardless of
+        /// cause. Uses AudioSource.PlayClipAtPoint instead of a component on
+        /// this object because this GameObject self-destructs shortly after
+        /// (see DestroyAfterDelay/explosionVfxLifetime) -- PlayClipAtPoint
+        /// spawns its own disposable temp GameObject that outlives this one,
+        /// so a clip longer than explosionVfxLifetime still plays out fully.
+        /// </summary>
+        private void PlayExplosionSound()
+        {
+            if (heavyHitClips != null && heavyHitClips.Length > 0)
+            {
+                int index;
+                do
+                {
+                    index = Random.Range(0, heavyHitClips.Length);
+                }
+                while (heavyHitClips.Length > 1 && index == lastHeavyHitClipIndex);
+                lastHeavyHitClipIndex = index;
+
+                var clip = heavyHitClips[index];
+                if (clip != null)
+                {
+                    AudioSource.PlayClipAtPoint(clip, transform.position);
+                }
+            }
+
+            if (explosionClip != null)
+            {
+                AudioSource.PlayClipAtPoint(explosionClip, transform.position);
+            }
         }
 
         private IEnumerator HideSpriteAfterFlash()

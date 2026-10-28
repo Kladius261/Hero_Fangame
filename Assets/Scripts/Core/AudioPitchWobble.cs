@@ -39,5 +39,26 @@ namespace HeroFangame.Core
             elapsed += deltaTime;
             source.pitch = 1f + Mathf.Sin(elapsed * speed) * amplitude;
         }
+
+        /// <summary>
+        /// Same wobble as <see cref="Apply(AudioSource, float)"/>, but stamps
+        /// the identical pitch onto two simultaneous AudioSources off a
+        /// single advance of <see cref="elapsed"/> — calling the single-source
+        /// overload twice in one frame would double-advance the phase and
+        /// desync the two sources from each other.
+        /// </summary>
+        public void Apply(AudioSource source1, AudioSource source2, float deltaTime)
+        {
+            elapsed += deltaTime;
+            float pitch = 1f + Mathf.Sin(elapsed * speed) * amplitude;
+            if (source1 != null)
+            {
+                source1.pitch = pitch;
+            }
+            if (source2 != null)
+            {
+                source2.pitch = pitch;
+            }
+        }
     }
 }

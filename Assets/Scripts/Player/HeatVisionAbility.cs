@@ -1,7 +1,9 @@
+using System.Collections;
 using UnityEngine;
 using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Camera;
+using HeroFangame.Interactables;
 using HeroFangame.UI;
 using BeamHitResult = HeroFangame.Combat.AttackUtility.BeamHitResult;
 
@@ -58,8 +60,34 @@ namespace HeroFangame.Player
 
         [Header("Audio")]
         [SerializeField] private AudioSource beamAudioSource;
+        [Tooltip("Second looping layer of the Loop/Main Group (ASF_WEAPON_Lightsaber_Idle02_Loop), played and pitch-wobbled in lockstep with beamAudioSource.")]
+        [SerializeField] private AudioSource beamAudioSourceLayer2;
+        [Tooltip("Shared one-shot source for every non-looping layer (Introductory, maneuver Loop groups, Ending, Feedback) — PlayOneShot natively mixes overlapping calls on a single source, so one is enough.")]
+        [SerializeField] private AudioSource oneShotAudioSource;
         [SerializeField] private float pitchWobbleSpeed = 6f;
         [SerializeField] private float pitchWobbleAmplitude = 0.1f;
+
+        [Header("Audio - Introductory (on press)")]
+        [SerializeField] private AudioClip introClipA;
+        [SerializeField] private AudioClip introClipB;
+
+        [Header("Audio - Loop Maneuver Groups (one-shot, on aim sweep)")]
+        [SerializeField] private AudioClip[] maneuverGroup1Clips;
+        [SerializeField] private AudioClip[] maneuverGroup2Clips;
+        [SerializeField] private AudioClip[] maneuverGroup3Clips;
+
+        [Header("Audio - Ending (on release)")]
+        [SerializeField] private AudioClip endingStage1ClipA;
+        [SerializeField] private AudioClip endingStage1ClipB;
+        [SerializeField] private AudioClip endingStage2ClipA;
+        [SerializeField] private AudioClip endingStage2ClipB;
+        [SerializeField] private AudioClip endingStage2ClipC;
+        [SerializeField] private AudioClip endingStage3Clip;
+
+        [Header("Audio - Feedback (Enemies/Destructibles, on hit)")]
+        [SerializeField] private AudioClip[] feedbackGroup1Clips;
+        [SerializeField] private AudioClip[] feedbackGroup2Clips;
+        [SerializeField] private AudioClip[] feedbackGroup3Clips;
 
         [Header("Aim")]
         [SerializeField] private float aimSweepSpeedDegreesPerSecond = 180f;
@@ -80,6 +108,17 @@ namespace HeroFangame.Player
         private TextPopupHandle textPopupHandle;
 
         private AudioPitchWobble pitchWobble;
+        private int lastManeuverGroupIndex = -1;
+        private int lastFeedbackGroupIndex = -1;
+
+        /// <summary>
+        /// -1 = Down held, 0 = neither/both held, 1 = Up held. Tracked every
+        /// frame unconditionally (not just while the beam is active) so that
+        /// if the player is already holding a direction the instant Heat
+        /// Vision activates, that pre-existing hold doesn't register as a
+        /// fresh "new sweep" edge on the activation frame.
+        /// </summary>
+        private int lastManeuverDirState;
 
         private void Awake()
         {
@@ -97,6 +136,8 @@ namespace HeroFangame.Player
 
         private void Update()
         {
+            UpdateManeuverEdgeDetection();
+
             if (controller.IsFlightMode || controller.IsGrabStance)
             {
                 StopBeamVisuals();
@@ -204,9 +245,26 @@ namespace HeroFangame.Player
             Vector2 size = new Vector2(maxDistance, beamSize.y);
             float angle = Vector2.SignedAngle(Vector2.right, dir);
             var hits = AttackUtility.OverlapBoxAndDamage(center, size, angle, hittableLayers, damage, gameObject, dir, applyKnockback ? knockbackForce : 0f, out int hitCount);
+
+            // Explosives get their own dedicated sound (shared project-wide,
+            // played from ExplosiveObject.Explode itself) instead of the
+            // generic Enemies/Destructible feedback group below -- only
+            // trigger that group if at least one struck target isn't an
+            // ExplosiveObject, so a beam pass that hits only explosive(s)
+            // doesn't double up both sounds at once.
+            bool hasNonExplosiveHit = false;
             for (int i = 0; i < hitCount; i++)
             {
                 hits[i].GetComponentInParent<HitSquashEffect>()?.PlaySquash(dir);
+                if (hits[i].GetComponentInParent<ExplosiveObject>() == null)
+                {
+                    hasNonExplosiveHit = true;
+                }
+            }
+
+            if (hitCount > 0 && hasNonExplosiveHit)
+            {
+                PlayFeedbackGroup();
             }
         }
 
@@ -263,7 +321,9 @@ namespace HeroFangame.Player
             if (!isBeamActive)
             {
                 beamAudioSource?.Play();
+                beamAudioSourceLayer2?.Play();
                 pitchWobble.Restart();
+                StartCoroutine(PlayIntroSequence());
                 if (distortionEffectPrefab != null && distortionEffectInstance == null)
                 {
                     distortionEffectInstance = Instantiate(distortionEffectPrefab, transform.position, Quaternion.identity);
@@ -271,7 +331,7 @@ namespace HeroFangame.Player
                 textPopupHandle = TextPopupManager.Instance?.BeginSustained(TextPopupManager.Category.HeatVision, transform.position);
             }
             isBeamActive = true;
-            pitchWobble.Apply(beamAudioSource, Time.deltaTime);
+            pitchWobble.Apply(beamAudioSource, beamAudioSourceLayer2, Time.deltaTime);
             textPopupHandle?.UpdatePosition(transform.position);
             textPopupHandle?.Tick(Time.deltaTime, beamTickInterval);
             controller.LockMovement(this);
@@ -320,6 +380,8 @@ namespace HeroFangame.Player
             }
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.HeatVision, false);
             beamAudioSource?.Stop();
+            beamAudioSourceLayer2?.Stop();
+            StartCoroutine(PlayEndingSequence());
             SetCameraShake(false);
         }
 
@@ -331,6 +393,149 @@ namespace HeroFangame.Player
             }
             cameraShake?.SetShaking(active);
             Haptics.GetOrCreate()?.SetContinuous(active, beamHapticLowFrequency, beamHapticHighFrequency);
+        }
+
+        /// <summary>
+        /// Edge-detects a fresh Up/Down sweep input (idle-to-held, or a
+        /// direction flip while still held) and fires a new maneuver layer
+        /// group for it -- called every frame regardless of whether the beam
+        /// is currently active, so the tracked direction never goes stale
+        /// across frames the beam is off.
+        /// </summary>
+        private void UpdateManeuverEdgeDetection()
+        {
+            float y = input.MoveInput.y;
+            int dirState = y > 0.5f ? 1 : (y < -0.5f ? -1 : 0);
+            if (isBeamActive && dirState != 0 && dirState != lastManeuverDirState)
+            {
+                PlayManeuverGroup();
+            }
+            lastManeuverDirState = dirState;
+        }
+
+        /// <summary>
+        /// One-shot "the player just pivoted the beam" burst -- randomly
+        /// picks one of the three maneuver layer groups (never repeating the
+        /// immediately previous one) and plays every clip in it simultaneously.
+        /// </summary>
+        private void PlayManeuverGroup()
+        {
+            int index;
+            do
+            {
+                index = Random.Range(0, 3);
+            }
+            while (index == lastManeuverGroupIndex);
+            lastManeuverGroupIndex = index;
+            PlayAllOneShot(index == 0 ? maneuverGroup1Clips : index == 1 ? maneuverGroup2Clips : maneuverGroup3Clips);
+        }
+
+        /// <summary>
+        /// One-shot "the beam just hit something" burst -- randomly picks
+        /// one of the three Enemies/Destructible feedback groups (never
+        /// repeating the immediately previous one) and plays every clip in
+        /// it simultaneously.
+        /// </summary>
+        private void PlayFeedbackGroup()
+        {
+            int index;
+            do
+            {
+                index = Random.Range(0, 3);
+            }
+            while (index == lastFeedbackGroupIndex);
+            lastFeedbackGroupIndex = index;
+            PlayAllOneShot(index == 0 ? feedbackGroup1Clips : index == 1 ? feedbackGroup2Clips : feedbackGroup3Clips);
+        }
+
+        /// <summary>
+        /// Plays every clip in the array back-to-back on oneShotAudioSource
+        /// in the same frame -- PlayOneShot natively mixes overlapping calls
+        /// on one source, so this layers them with zero relative delay.
+        /// </summary>
+        private void PlayAllOneShot(AudioClip[] clips)
+        {
+            if (clips == null || oneShotAudioSource == null)
+            {
+                return;
+            }
+            for (int i = 0; i < clips.Length; i++)
+            {
+                if (clips[i] != null)
+                {
+                    oneShotAudioSource.PlayOneShot(clips[i]);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Bass drop immediately, whoosh at its midpoint. Left to finish on
+        /// its own timeline even if a new activation or release happens
+        /// mid-sequence -- it only ever calls PlayOneShot (fire-and-forget),
+        /// so overlapping with a later sequence can't corrupt shared state.
+        /// </summary>
+        private IEnumerator PlayIntroSequence()
+        {
+            if (oneShotAudioSource != null && introClipA != null)
+            {
+                oneShotAudioSource.PlayOneShot(introClipA);
+                yield return new WaitForSeconds(introClipA.length * 0.5f);
+            }
+            if (oneShotAudioSource != null && introClipB != null)
+            {
+                oneShotAudioSource.PlayOneShot(introClipB);
+            }
+        }
+
+        /// <summary>
+        /// Three-stage release sequence: stage 1 (metallic reverse + reverse
+        /// sweep) immediately, stage 2 (bass drop + casting impact + whoosh
+        /// hit) right after stage 1 finishes, stage 3 (magic curse fire) at
+        /// stage 2's midpoint. Same fire-and-forget reasoning as
+        /// PlayIntroSequence -- never cancelled, even by a fresh activation.
+        /// </summary>
+        private IEnumerator PlayEndingSequence()
+        {
+            if (oneShotAudioSource != null)
+            {
+                if (endingStage1ClipA != null)
+                {
+                    oneShotAudioSource.PlayOneShot(endingStage1ClipA);
+                }
+                if (endingStage1ClipB != null)
+                {
+                    oneShotAudioSource.PlayOneShot(endingStage1ClipB);
+                }
+            }
+            yield return new WaitForSeconds(Mathf.Max(SafeLength(endingStage1ClipA), SafeLength(endingStage1ClipB)));
+
+            if (oneShotAudioSource != null)
+            {
+                if (endingStage2ClipA != null)
+                {
+                    oneShotAudioSource.PlayOneShot(endingStage2ClipA);
+                }
+                if (endingStage2ClipB != null)
+                {
+                    oneShotAudioSource.PlayOneShot(endingStage2ClipB);
+                }
+                if (endingStage2ClipC != null)
+                {
+                    oneShotAudioSource.PlayOneShot(endingStage2ClipC);
+                }
+            }
+            float stage2Duration = Mathf.Max(SafeLength(endingStage2ClipA), SafeLength(endingStage2ClipB), SafeLength(endingStage2ClipC));
+            yield return new WaitForSeconds(stage2Duration * 0.5f);
+
+            if (oneShotAudioSource != null && endingStage3Clip != null)
+            {
+                oneShotAudioSource.PlayOneShot(endingStage3Clip);
+            }
+        }
+
+        private static float SafeLength(AudioClip clip)
+        {
+            return clip != null ? clip.length : 0f;
         }
 
 #if UNITY_EDITOR
