@@ -66,6 +66,14 @@ namespace HeroFangame.Player
         [SerializeField] private AudioSource oneShotAudioSource;
         [SerializeField] private float pitchWobbleSpeed = 6f;
         [SerializeField] private float pitchWobbleAmplitude = 0.1f;
+        [Tooltip("Playback speed multiplier for the Introductory one-shot group -- doubled so the opening bass-drop/whoosh lands faster. (The Ending group reuses this same field but is currently disabled -- see PlayEndingSequence.)")]
+        [SerializeField] private float introEndingPlaybackSpeed = 2f;
+        [Tooltip("Relative volume multiplier for Loop maneuver-group one-shots versus the Loop Main Group's own AudioSource volume (assumed 1.0) -- boosted so a maneuver burst cuts through the main loop's pitch-wobble instead of getting buried under it.")]
+        [SerializeField] private float maneuverGroupVolumeScale = 1.5f;
+        [Tooltip("Relative volume multiplier for Feedback (Enemies/Destructibles) group one-shots versus the Loop Main Group's own AudioSource volume (assumed 1.0). Left at 1.0 (original) -- an earlier 1.25x boost was tried and then reverted.")]
+        [SerializeField] private float feedbackGroupVolumeScale = 1f;
+        [Tooltip("Duration of the smooth volume fade-out applied to the Introductory one-shot, Loop Main Group (both layers), and any still-sounding Loop maneuver one-shot when the beam is released -- replaces an instant cutoff with a quick decline so release doesn't sound like an abrupt audio pop.")]
+        [SerializeField] private float releaseFadeOutDuration = 0.25f;
 
         [Header("Audio - Introductory (on press)")]
         [SerializeField] private AudioClip introClipA;
@@ -112,6 +120,44 @@ namespace HeroFangame.Player
         private int lastFeedbackGroupIndex = -1;
 
         /// <summary>
+        /// True once the current activation's PlayIntroSequence has fully
+        /// finished playing (including introClipB). Currently unused for
+        /// gating any Stop logic (release now always fades out rather than
+        /// branching on this), but kept set so a future re-enable of
+        /// PlayEndingSequence can again gate on "did the intro finish" the
+        /// same way it originally did.
+        /// </summary>
+        private bool introSequenceFinished;
+
+        /// <summary>
+        /// Handle of the currently-running PlayIntroSequence coroutine (null
+        /// once it has finished), so StopBeamVisuals can cancel it outright
+        /// on release instead of letting it keep firing intro clips into the
+        /// fade-out below.
+        /// </summary>
+        private Coroutine introCoroutine;
+
+        /// <summary>
+        /// Handle of the currently-running release fade-out (null once it
+        /// has finished), so a fresh activation that starts mid-fade -- or a
+        /// second release that re-enters StopBeamVisuals -- can cancel the
+        /// old fade outright instead of letting two fades fight over the
+        /// same AudioSources' volumes.
+        /// </summary>
+        private Coroutine releaseFadeOutCoroutine;
+
+        /// <summary>
+        /// Original inspector-configured volumes of the three faded
+        /// AudioSources, captured once in Awake -- the release fade drives
+        /// each source's volume down to 0 and leaves it there, so every
+        /// fresh activation must restore this base value before playing
+        /// again rather than starting back up silent.
+        /// </summary>
+        private float beamAudioSourceBaseVolume = 1f;
+        private float beamAudioSourceLayer2BaseVolume = 1f;
+        private float oneShotAudioSourceBaseVolume = 1f;
+
+        /// <summary>
         /// -1 = Down held, 0 = neither/both held, 1 = Up held. Tracked every
         /// frame unconditionally (not just while the beam is active) so that
         /// if the player is already holding a direction the instant Heat
@@ -132,6 +178,10 @@ namespace HeroFangame.Player
             }
             aimController = new AbilityAimController(aimSweepSpeedDegreesPerSecond, aimSweepAccelerationDegreesPerSecondSquared);
             pitchWobble = new AudioPitchWobble(pitchWobbleSpeed, pitchWobbleAmplitude);
+
+            if (beamAudioSource != null) beamAudioSourceBaseVolume = beamAudioSource.volume;
+            if (beamAudioSourceLayer2 != null) beamAudioSourceLayer2BaseVolume = beamAudioSourceLayer2.volume;
+            if (oneShotAudioSource != null) oneShotAudioSourceBaseVolume = oneShotAudioSource.volume;
         }
 
         private void Update()
@@ -320,10 +370,24 @@ namespace HeroFangame.Player
         {
             if (!isBeamActive)
             {
+                // A fresh activation always wins over a still-running
+                // release fade from a previous activation (e.g. a quick
+                // retap) -- cancel it and restore every faded source back
+                // to its base volume before playing again, so the new
+                // activation never starts out partway faded/silent.
+                if (releaseFadeOutCoroutine != null)
+                {
+                    StopCoroutine(releaseFadeOutCoroutine);
+                    releaseFadeOutCoroutine = null;
+                }
+                if (beamAudioSource != null) beamAudioSource.volume = beamAudioSourceBaseVolume;
+                if (beamAudioSourceLayer2 != null) beamAudioSourceLayer2.volume = beamAudioSourceLayer2BaseVolume;
+                if (oneShotAudioSource != null) oneShotAudioSource.volume = oneShotAudioSourceBaseVolume;
+
                 beamAudioSource?.Play();
                 beamAudioSourceLayer2?.Play();
                 pitchWobble.Restart();
-                StartCoroutine(PlayIntroSequence());
+                introCoroutine = StartCoroutine(PlayIntroSequence());
                 if (distortionEffectPrefab != null && distortionEffectInstance == null)
                 {
                     distortionEffectInstance = Instantiate(distortionEffectPrefab, transform.position, Quaternion.identity);
@@ -379,10 +443,66 @@ namespace HeroFangame.Player
                 distortionEffectInstance = null;
             }
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.HeatVision, false);
+
+            // Cancel the Introductory coroutine outright so no further
+            // intro clips fire into the fade-out below, then fade every
+            // currently-sounding layer (Loop Main Group on both its
+            // AudioSources, plus the Introductory/maneuver one-shots still
+            // playing on oneShotAudioSource) down to silence over
+            // releaseFadeOutDuration instead of cutting any of them off
+            // instantly.
+            if (introCoroutine != null)
+            {
+                StopCoroutine(introCoroutine);
+                introCoroutine = null;
+            }
+            if (releaseFadeOutCoroutine != null)
+            {
+                StopCoroutine(releaseFadeOutCoroutine);
+            }
+            releaseFadeOutCoroutine = StartCoroutine(FadeOutOnRelease());
+
+            // The Ending group is intentionally not played -- closing the
+            // beam with a trailing release sequence read as an awkward
+            // delay after the laser already stopped. Left fully wired
+            // (clips, PlayEndingSequence) so it can be re-enabled later;
+            // just never invoked from here.
+
+            SetCameraShake(false);
+        }
+
+        /// <summary>
+        /// Fades beamAudioSource, beamAudioSourceLayer2, and
+        /// oneShotAudioSource from their current volume down to 0 over
+        /// releaseFadeOutDuration, in lockstep, then stops all three. Covers
+        /// the Loop Main Group (always sounding while the beam is active)
+        /// and whichever Introductory/maneuver one-shot happens to still be
+        /// playing on oneShotAudioSource at the moment of release -- both
+        /// cases get the same quick decline instead of an abrupt cutoff.
+        /// Volumes are left at 0 afterward; ActivateBeamVisual restores each
+        /// source's base volume before the next activation plays again.
+        /// </summary>
+        private IEnumerator FadeOutOnRelease()
+        {
+            float beamStartVolume = beamAudioSource != null ? beamAudioSource.volume : 0f;
+            float beamLayer2StartVolume = beamAudioSourceLayer2 != null ? beamAudioSourceLayer2.volume : 0f;
+            float oneShotStartVolume = oneShotAudioSource != null ? oneShotAudioSource.volume : 0f;
+
+            float elapsed = 0f;
+            while (elapsed < releaseFadeOutDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / releaseFadeOutDuration);
+                if (beamAudioSource != null) beamAudioSource.volume = Mathf.Lerp(beamStartVolume, 0f, t);
+                if (beamAudioSourceLayer2 != null) beamAudioSourceLayer2.volume = Mathf.Lerp(beamLayer2StartVolume, 0f, t);
+                if (oneShotAudioSource != null) oneShotAudioSource.volume = Mathf.Lerp(oneShotStartVolume, 0f, t);
+                yield return null;
+            }
+
             beamAudioSource?.Stop();
             beamAudioSourceLayer2?.Stop();
-            StartCoroutine(PlayEndingSequence());
-            SetCameraShake(false);
+            oneShotAudioSource?.Stop();
+            releaseFadeOutCoroutine = null;
         }
 
         private void SetCameraShake(bool active)
@@ -416,7 +536,9 @@ namespace HeroFangame.Player
         /// <summary>
         /// One-shot "the player just pivoted the beam" burst -- randomly
         /// picks one of the three maneuver layer groups (never repeating the
-        /// immediately previous one) and plays every clip in it simultaneously.
+        /// immediately previous one) and plays every clip in it
+        /// simultaneously, boosted by maneuverGroupVolumeScale so it isn't
+        /// buried under the Main Group's pitch-wobbling loop.
         /// </summary>
         private void PlayManeuverGroup()
         {
@@ -427,7 +549,7 @@ namespace HeroFangame.Player
             }
             while (index == lastManeuverGroupIndex);
             lastManeuverGroupIndex = index;
-            PlayAllOneShot(index == 0 ? maneuverGroup1Clips : index == 1 ? maneuverGroup2Clips : maneuverGroup3Clips);
+            PlayAllOneShot(index == 0 ? maneuverGroup1Clips : index == 1 ? maneuverGroup2Clips : maneuverGroup3Clips, maneuverGroupVolumeScale);
         }
 
         /// <summary>
@@ -445,15 +567,17 @@ namespace HeroFangame.Player
             }
             while (index == lastFeedbackGroupIndex);
             lastFeedbackGroupIndex = index;
-            PlayAllOneShot(index == 0 ? feedbackGroup1Clips : index == 1 ? feedbackGroup2Clips : feedbackGroup3Clips);
+            PlayAllOneShot(index == 0 ? feedbackGroup1Clips : index == 1 ? feedbackGroup2Clips : feedbackGroup3Clips, feedbackGroupVolumeScale);
         }
 
         /// <summary>
         /// Plays every clip in the array back-to-back on oneShotAudioSource
         /// in the same frame -- PlayOneShot natively mixes overlapping calls
         /// on one source, so this layers them with zero relative delay.
+        /// Always played at normal (1x) pitch/speed -- only the Introductory
+        /// and Ending groups get sped up, via PlayOneShotSped below.
         /// </summary>
-        private void PlayAllOneShot(AudioClip[] clips)
+        private void PlayAllOneShot(AudioClip[] clips, float volumeScale = 1f)
         {
             if (clips == null || oneShotAudioSource == null)
             {
@@ -463,74 +587,83 @@ namespace HeroFangame.Player
             {
                 if (clips[i] != null)
                 {
-                    oneShotAudioSource.PlayOneShot(clips[i]);
+                    oneShotAudioSource.pitch = 1f;
+                    oneShotAudioSource.PlayOneShot(clips[i], volumeScale);
                 }
             }
         }
 
         /// <summary>
-        /// Bass drop immediately, whoosh at its midpoint. Left to finish on
-        /// its own timeline even if a new activation or release happens
-        /// mid-sequence -- it only ever calls PlayOneShot (fire-and-forget),
-        /// so overlapping with a later sequence can't corrupt shared state.
+        /// Plays a single clip on oneShotAudioSource at introEndingPlaybackSpeed
+        /// -- used only by the Introductory/Ending sequences below. Unity
+        /// snapshots an AudioSource's pitch at the instant PlayOneShot is
+        /// called, so stamping the sped-up pitch here (rather than leaving it
+        /// set between calls) can't bleed into a Loop maneuver/Feedback
+        /// one-shot that happens to fire the same frame.
+        /// </summary>
+        private void PlayOneShotSped(AudioClip clip)
+        {
+            if (clip == null || oneShotAudioSource == null)
+            {
+                return;
+            }
+            oneShotAudioSource.pitch = introEndingPlaybackSpeed;
+            oneShotAudioSource.PlayOneShot(clip);
+        }
+
+        /// <summary>
+        /// Bass drop immediately, whoosh at its midpoint, both played at
+        /// introEndingPlaybackSpeed so the whole intro lands faster. Sets
+        /// introSequenceFinished once introClipB has been triggered, so
+        /// StopBeamVisuals can tell a quick release ("short zap") apart from
+        /// a release that comes after the intro has fully played out. Left
+        /// to finish on its own timeline even if a new activation or release
+        /// happens mid-sequence -- it only ever calls PlayOneShot
+        /// (fire-and-forget), so overlapping with a later sequence can't
+        /// corrupt shared state.
         /// </summary>
         private IEnumerator PlayIntroSequence()
         {
-            if (oneShotAudioSource != null && introClipA != null)
+            introSequenceFinished = false;
+            if (introClipA != null)
             {
-                oneShotAudioSource.PlayOneShot(introClipA);
-                yield return new WaitForSeconds(introClipA.length * 0.5f);
+                PlayOneShotSped(introClipA);
+                yield return new WaitForSeconds(introClipA.length / introEndingPlaybackSpeed * 0.5f);
             }
-            if (oneShotAudioSource != null && introClipB != null)
+            if (introClipB != null)
             {
-                oneShotAudioSource.PlayOneShot(introClipB);
+                PlayOneShotSped(introClipB);
             }
+            introSequenceFinished = true;
+            introCoroutine = null;
         }
 
         /// <summary>
         /// Three-stage release sequence: stage 1 (metallic reverse + reverse
         /// sweep) immediately, stage 2 (bass drop + casting impact + whoosh
         /// hit) right after stage 1 finishes, stage 3 (magic curse fire) at
-        /// stage 2's midpoint. Same fire-and-forget reasoning as
-        /// PlayIntroSequence -- never cancelled, even by a fresh activation.
+        /// stage 2's midpoint, all at introEndingPlaybackSpeed.
+        ///
+        /// Currently disabled -- StopBeamVisuals no longer calls this, since
+        /// playing a trailing release sequence after the beam already
+        /// stopped read as an awkward delay. Left fully implemented (and its
+        /// clip fields still wired on the prefab) purely so it can be
+        /// re-enabled later with a single call site change; it is dead code
+        /// until then.
         /// </summary>
         private IEnumerator PlayEndingSequence()
         {
-            if (oneShotAudioSource != null)
-            {
-                if (endingStage1ClipA != null)
-                {
-                    oneShotAudioSource.PlayOneShot(endingStage1ClipA);
-                }
-                if (endingStage1ClipB != null)
-                {
-                    oneShotAudioSource.PlayOneShot(endingStage1ClipB);
-                }
-            }
-            yield return new WaitForSeconds(Mathf.Max(SafeLength(endingStage1ClipA), SafeLength(endingStage1ClipB)));
+            PlayOneShotSped(endingStage1ClipA);
+            PlayOneShotSped(endingStage1ClipB);
+            yield return new WaitForSeconds(Mathf.Max(SafeLength(endingStage1ClipA), SafeLength(endingStage1ClipB)) / introEndingPlaybackSpeed);
 
-            if (oneShotAudioSource != null)
-            {
-                if (endingStage2ClipA != null)
-                {
-                    oneShotAudioSource.PlayOneShot(endingStage2ClipA);
-                }
-                if (endingStage2ClipB != null)
-                {
-                    oneShotAudioSource.PlayOneShot(endingStage2ClipB);
-                }
-                if (endingStage2ClipC != null)
-                {
-                    oneShotAudioSource.PlayOneShot(endingStage2ClipC);
-                }
-            }
-            float stage2Duration = Mathf.Max(SafeLength(endingStage2ClipA), SafeLength(endingStage2ClipB), SafeLength(endingStage2ClipC));
+            PlayOneShotSped(endingStage2ClipA);
+            PlayOneShotSped(endingStage2ClipB);
+            PlayOneShotSped(endingStage2ClipC);
+            float stage2Duration = Mathf.Max(SafeLength(endingStage2ClipA), SafeLength(endingStage2ClipB), SafeLength(endingStage2ClipC)) / introEndingPlaybackSpeed;
             yield return new WaitForSeconds(stage2Duration * 0.5f);
 
-            if (oneShotAudioSource != null && endingStage3Clip != null)
-            {
-                oneShotAudioSource.PlayOneShot(endingStage3Clip);
-            }
+            PlayOneShotSped(endingStage3Clip);
         }
 
         private static float SafeLength(AudioClip clip)
