@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace HeroFangame.Enemy
 {
@@ -39,14 +40,15 @@ namespace HeroFangame.Enemy
 
         [Header("Audio")]
         [SerializeField] private AudioSource audioSource;
-        [SerializeField] private AudioClip freezeSound;
-        [SerializeField] private AudioClip[] iceBreakSounds;
+        [FormerlySerializedAs("iceBreakSounds")]
+        [SerializeField] private AudioClip[] breakFreeFirstLayerClips;
+        [SerializeField] private AudioClip breakFreeSecondLayerClip;
 
         private Coroutine fadeRoutine;
         private WaitForSeconds shatterFlashWait;
         private bool isLocked;
         private bool isChilling;
-        private int lastIceBreakClipIndex = -1;
+        private int lastBreakFreeClipIndex = -1;
 
         private void Awake()
         {
@@ -81,7 +83,7 @@ namespace HeroFangame.Enemy
                 isChilling = false;
                 StopFadeRoutineIfRunning();
                 ambientFrostParticles?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-                StopFreezeExposureSound();
+                FreezeTargetAudioManager.GetOrCreate()?.NotifyChillEnded();
                 if (iceOverlayRenderer != null)
                 {
                     iceOverlayRenderer.color = new Color(iceOverlayColor.r, iceOverlayColor.g, iceOverlayColor.b, 0f);
@@ -98,7 +100,7 @@ namespace HeroFangame.Enemy
             isChilling = true;
             StopFadeRoutineIfRunning();
             ambientFrostParticles?.Play();
-            PlayFreezeExposureSound();
+            FreezeTargetAudioManager.GetOrCreate()?.NotifyChillStarted();
             if (iceOverlayRenderer != null)
             {
                 iceOverlayRenderer.gameObject.SetActive(true);
@@ -106,41 +108,20 @@ namespace HeroFangame.Enemy
             }
         }
 
-        /// <summary>
-        /// Starts the "freeze" sound the instant exposure begins (mirrors
-        /// the overlay/ambient-particle snap-on above), rather than at full
-        /// solid-freeze. Uses a regular Play() rather than PlayOneShot so
-        /// StopFreezeExposureSound() can cut it off early if exposure is
-        /// lost before the enemy finishes freezing.
-        /// </summary>
-        private void PlayFreezeExposureSound()
-        {
-            if (freezeSound == null || audioSource == null)
-            {
-                return;
-            }
-            audioSource.loop = false;
-            audioSource.clip = freezeSound;
-            audioSource.Play();
-        }
-
-        /// <summary>
-        /// Cuts the "freeze" sound short the moment exposure drops back to
-        /// zero (breath released or aimed elsewhere) instead of letting it
-        /// play out to completion.
-        /// </summary>
-        private void StopFreezeExposureSound()
-        {
-            if (audioSource != null && audioSource.isPlaying)
-            {
-                audioSource.Stop();
-            }
-        }
-
         public void PlayFreezeIn()
         {
+            if (isChilling)
+            {
+                // SetChillLevel's own t<=0 exit branch never fires on this
+                // transition (Freeze() is always invoked from inside
+                // AddFreezeExposure's "still building" branch, not an
+                // exposure-loss branch), so the chilling refcount has to be
+                // closed out here instead before the frozen refcount below
+                // increments.
+                isChilling = false;
+                FreezeTargetAudioManager.GetOrCreate()?.NotifyChillEnded();
+            }
             isLocked = true;
-            isChilling = false;
 
             freezeBurstParticles?.Play();
             ambientFrostParticles?.Play();
@@ -150,6 +131,8 @@ namespace HeroFangame.Enemy
                 iceOverlayRenderer.gameObject.SetActive(true);
                 RestartFade(iceOverlayColor.a, iceFadeInDuration, deactivateAtEnd: false);
             }
+
+            FreezeTargetAudioManager.GetOrCreate()?.NotifyTargetFrozen();
         }
 
         public void PlayThaw()
@@ -162,6 +145,8 @@ namespace HeroFangame.Enemy
             {
                 RestartFade(0f, iceFadeOutDuration, deactivateAtEnd: true);
             }
+
+            FreezeTargetAudioManager.GetOrCreate()?.NotifyTargetUnfrozen();
         }
 
         /// <summary>
@@ -173,13 +158,16 @@ namespace HeroFangame.Enemy
         /// an instant, then fades it away almost instantly
         /// (iceShatterFadeOutDuration) rather than the slow melt-fade.
         /// </summary>
-        public void PlayShatter()
+        public void PlayShatter(bool playBreakFreeSound = true)
         {
             isLocked = false;
 
             ambientFrostParticles?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             iceShatterParticles?.Play();
-            PlayRandomIceBreakSound();
+            if (playBreakFreeSound)
+            {
+                PlayBreakFreeSound();
+            }
 
             if (iceOverlayRenderer != null)
             {
@@ -187,32 +175,47 @@ namespace HeroFangame.Enemy
                 iceOverlayRenderer.gameObject.SetActive(true);
                 fadeRoutine = StartCoroutine(ShatterFlashRoutine());
             }
+
+            // Target always leaves the Frozen state here regardless of
+            // whether the Break Free sound itself played (e.g. frozen
+            // ExplosiveObject explosions suppress the sound but still need
+            // the Maintain Frozen refcount decremented).
+            FreezeTargetAudioManager.GetOrCreate()?.NotifyTargetUnfrozen();
         }
 
         /// <summary>
-        /// Picks a random ice-break clip from the pool, avoiding an
-        /// immediate repeat of the last one played, mirroring
-        /// PunchHitSound's no-immediate-repeat convention.
+        /// Picks a random first-layer Break Free clip, avoiding an immediate
+        /// repeat of the last one played (mirrors PunchHitSound's
+        /// no-immediate-repeat convention), always layered with a fixed
+        /// second-layer clip played alongside it.
         /// </summary>
-        private void PlayRandomIceBreakSound()
+        private void PlayBreakFreeSound()
         {
-            if (iceBreakSounds == null || iceBreakSounds.Length == 0 || audioSource == null)
+            if (audioSource == null)
             {
                 return;
             }
 
-            int index;
-            do
+            if (breakFreeFirstLayerClips != null && breakFreeFirstLayerClips.Length > 0)
             {
-                index = Random.Range(0, iceBreakSounds.Length);
-            }
-            while (iceBreakSounds.Length > 1 && index == lastIceBreakClipIndex);
-            lastIceBreakClipIndex = index;
+                int index;
+                do
+                {
+                    index = Random.Range(0, breakFreeFirstLayerClips.Length);
+                }
+                while (breakFreeFirstLayerClips.Length > 1 && index == lastBreakFreeClipIndex);
+                lastBreakFreeClipIndex = index;
 
-            var clip = iceBreakSounds[index];
-            if (clip != null)
+                var clip = breakFreeFirstLayerClips[index];
+                if (clip != null)
+                {
+                    audioSource.PlayOneShot(clip);
+                }
+            }
+
+            if (breakFreeSecondLayerClip != null)
             {
-                audioSource.PlayOneShot(clip);
+                audioSource.PlayOneShot(breakFreeSecondLayerClip);
             }
         }
 

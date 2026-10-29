@@ -1,7 +1,9 @@
+using System.Collections;
 using UnityEngine;
 using HeroFangame.Combat;
 using HeroFangame.Core;
 using HeroFangame.Camera;
+using HeroFangame.Enemy;
 using HeroFangame.UI;
 
 namespace HeroFangame.Player
@@ -47,8 +49,25 @@ namespace HeroFangame.Player
 
         [Header("Audio")]
         [SerializeField] private AudioSource breathAudioSource;
+        [Tooltip("Second looping layer of the Loop/Main Group (RPG3_WindMagic_Drone01_DarkWindLoop), played and pitch-wobbled in lockstep with breathAudioSource.")]
+        [SerializeField] private AudioSource breathAudioSourceLayer2;
+        [Tooltip("Shared one-shot source for every non-looping layer (Introductory, maneuver Loop groups) -- PlayOneShot natively mixes overlapping calls on a single source, so one is enough.")]
+        [SerializeField] private AudioSource oneShotAudioSource;
         [SerializeField] private float pitchWobbleSpeed = 6f;
         [SerializeField] private float pitchWobbleAmplitude = 0.1f;
+        [Tooltip("Relative volume multiplier for Loop maneuver-group one-shots versus the Loop Main Group's own AudioSource volume (assumed 1.0) -- boosted so a maneuver burst cuts through the main loop's pitch-wobble instead of getting buried under it.")]
+        [SerializeField] private float maneuverGroupVolumeScale = 1.5f;
+        [Tooltip("Duration of the smooth volume fade-out applied to the Loop Main Group (both layers) when the breath is released -- replaces an instant cutoff with a quick decline.")]
+        [SerializeField] private float releaseFadeOutDuration = 0.5f;
+
+        [Header("Audio - Introductory (on press)")]
+        [SerializeField] private AudioClip introClipA;
+        [SerializeField] private AudioClip introClipB;
+
+        [Header("Audio - Loop Maneuver Groups (one-shot, on aim sweep)")]
+        [SerializeField] private AudioClip[] maneuverGroup1Clips;
+        [SerializeField] private AudioClip[] maneuverGroup2Clips;
+        [SerializeField] private AudioClip[] maneuverGroup3Clips;
 
         [Header("Aim")]
         [SerializeField] private float aimSweepSpeedDegreesPerSecond = 180f;
@@ -71,6 +90,42 @@ namespace HeroFangame.Player
         private AudioPitchWobble pitchWobble;
         private TextPopupHandle textPopupHandle;
 
+        private int lastManeuverGroupIndex = -1;
+
+        /// <summary>
+        /// -1 = Down held, 0 = neither/both held, 1 = Up held. Tracked every
+        /// frame unconditionally (not just while the cone is active), same
+        /// rationale as HeatVisionAbility's lastManeuverDirState.
+        /// </summary>
+        private int lastManeuverDirState;
+
+        /// <summary>
+        /// Handle of the currently-running PlayIntroSequence coroutine (null
+        /// once it has finished), so StopConeVisual can cancel it outright on
+        /// release instead of letting it keep firing intro clips into the
+        /// fade-out below.
+        /// </summary>
+        private Coroutine introCoroutine;
+
+        /// <summary>
+        /// Handle of the currently-running release fade-out (null once it has
+        /// finished), so a fresh activation that starts mid-fade -- or a
+        /// second release that re-enters StopConeVisual -- can cancel the old
+        /// fade outright instead of letting two fades fight over the same
+        /// AudioSources' volumes.
+        /// </summary>
+        private Coroutine releaseFadeOutCoroutine;
+
+        /// <summary>
+        /// Original inspector-configured volumes of the two faded
+        /// AudioSources, captured once in Awake -- the release fade drives
+        /// each source's volume down to 0 and leaves it there, so every
+        /// fresh activation must restore this base value before playing
+        /// again rather than starting back up silent.
+        /// </summary>
+        private float breathAudioSourceBaseVolume = 1f;
+        private float breathAudioSourceLayer2BaseVolume = 1f;
+
         private void Awake()
         {
             input = GetComponent<PlayerInputHandler>();
@@ -83,10 +138,15 @@ namespace HeroFangame.Player
             }
             aimController = new AbilityAimController(aimSweepSpeedDegreesPerSecond, aimSweepAccelerationDegreesPerSecondSquared);
             pitchWobble = new AudioPitchWobble(pitchWobbleSpeed, pitchWobbleAmplitude);
+
+            if (breathAudioSource != null) breathAudioSourceBaseVolume = breathAudioSource.volume;
+            if (breathAudioSourceLayer2 != null) breathAudioSourceLayer2BaseVolume = breathAudioSourceLayer2.volume;
         }
 
         private void Update()
         {
+            UpdateManeuverEdgeDetection();
+
             if (controller.IsFlightMode || controller.IsGrabStance)
             {
                 StopConeVisual();
@@ -242,12 +302,29 @@ namespace HeroFangame.Player
 
             if (!isConeActive)
             {
+                // A fresh activation always wins over a still-running release
+                // fade from a previous activation -- cancel it and restore
+                // both faded sources back to their base volume before
+                // playing again, so the new activation never starts out
+                // partway faded/silent.
+                if (releaseFadeOutCoroutine != null)
+                {
+                    StopCoroutine(releaseFadeOutCoroutine);
+                    releaseFadeOutCoroutine = null;
+                }
+                if (breathAudioSource != null) breathAudioSource.volume = breathAudioSourceBaseVolume;
+                if (breathAudioSourceLayer2 != null) breathAudioSourceLayer2.volume = breathAudioSourceLayer2BaseVolume;
+
                 breathAudioSource?.Play();
+                breathAudioSourceLayer2?.Play();
                 pitchWobble.Restart();
+                introCoroutine = StartCoroutine(PlayIntroSequence());
                 textPopupHandle = TextPopupManager.Instance?.BeginSustained(TextPopupManager.Category.FreezeBreath, transform.position);
+
+                FreezeTargetAudioManager.GetOrCreate()?.PauseMaintainFrozenLoop();
             }
             isConeActive = true;
-            pitchWobble.Apply(breathAudioSource, Time.deltaTime);
+            pitchWobble.Apply(breathAudioSource, breathAudioSourceLayer2, Time.deltaTime);
             textPopupHandle?.UpdatePosition(transform.position);
             textPopupHandle?.Tick(Time.deltaTime, freezeBreathLetterGrowthInterval);
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.FreezeBreath, true);
@@ -294,7 +371,126 @@ namespace HeroFangame.Player
             coneEffect?.StopCone();
             coneEffect?.StopBoundaryContact();
             FullScreenAbilityEffect.Instance?.SetActive(FullScreenAbilityEffect.Kind.FreezeBreath, false);
+
+            // Cancel the Introductory coroutine outright so no further intro
+            // clips fire into the fade-out below, then fade the Loop Main
+            // Group (both AudioSources) down to silence over
+            // releaseFadeOutDuration instead of cutting it off instantly.
+            if (introCoroutine != null)
+            {
+                StopCoroutine(introCoroutine);
+                introCoroutine = null;
+            }
+            if (releaseFadeOutCoroutine != null)
+            {
+                StopCoroutine(releaseFadeOutCoroutine);
+            }
+            releaseFadeOutCoroutine = StartCoroutine(FadeOutOnRelease());
+
+            FreezeTargetAudioManager.GetOrCreate()?.ResumeMaintainFrozenLoop();
+        }
+
+        /// <summary>
+        /// Fades breathAudioSource and breathAudioSourceLayer2 (the Loop
+        /// Main Group) from their current volume down to 0 over
+        /// releaseFadeOutDuration, in lockstep, then stops both. Volumes are
+        /// left at 0 afterward; ApplyCone restores each source's base volume
+        /// before the next activation plays again.
+        /// </summary>
+        private IEnumerator FadeOutOnRelease()
+        {
+            float startVol1 = breathAudioSource != null ? breathAudioSource.volume : 0f;
+            float startVol2 = breathAudioSourceLayer2 != null ? breathAudioSourceLayer2.volume : 0f;
+
+            float elapsed = 0f;
+            while (elapsed < releaseFadeOutDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / releaseFadeOutDuration);
+                if (breathAudioSource != null) breathAudioSource.volume = Mathf.Lerp(startVol1, 0f, t);
+                if (breathAudioSourceLayer2 != null) breathAudioSourceLayer2.volume = Mathf.Lerp(startVol2, 0f, t);
+                yield return null;
+            }
+
             breathAudioSource?.Stop();
+            breathAudioSourceLayer2?.Stop();
+            releaseFadeOutCoroutine = null;
+        }
+
+        /// <summary>
+        /// Clip A immediately, clip B at clip A's natural half-length mark --
+        /// both at normal (1x) speed, unlike Heat Vision's sped-up intro.
+        /// </summary>
+        private IEnumerator PlayIntroSequence()
+        {
+            if (introClipA != null)
+            {
+                oneShotAudioSource?.PlayOneShot(introClipA);
+                yield return new WaitForSeconds(introClipA.length * 0.5f);
+            }
+            if (introClipB != null)
+            {
+                oneShotAudioSource?.PlayOneShot(introClipB);
+            }
+            introCoroutine = null;
+        }
+
+        /// <summary>
+        /// Edge-detects a fresh Up/Down sweep input (idle-to-held, or a
+        /// direction flip while still held) and fires a new maneuver layer
+        /// group for it -- called every frame regardless of whether the cone
+        /// is currently active, so the tracked direction never goes stale
+        /// across frames the cone is off.
+        /// </summary>
+        private void UpdateManeuverEdgeDetection()
+        {
+            float y = input.MoveInput.y;
+            int dirState = y > 0.5f ? 1 : (y < -0.5f ? -1 : 0);
+            if (isConeActive && dirState != 0 && dirState != lastManeuverDirState)
+            {
+                PlayManeuverGroup();
+            }
+            lastManeuverDirState = dirState;
+        }
+
+        /// <summary>
+        /// One-shot "the player just pivoted the breath" burst -- randomly
+        /// picks one of the three maneuver layer groups (never repeating the
+        /// immediately previous one) and plays every clip in it
+        /// simultaneously, boosted by maneuverGroupVolumeScale so it isn't
+        /// buried under the Main Group's pitch-wobbling loop.
+        /// </summary>
+        private void PlayManeuverGroup()
+        {
+            int index;
+            do
+            {
+                index = Random.Range(0, 3);
+            }
+            while (index == lastManeuverGroupIndex);
+            lastManeuverGroupIndex = index;
+            PlayAllOneShot(index == 0 ? maneuverGroup1Clips : index == 1 ? maneuverGroup2Clips : maneuverGroup3Clips, maneuverGroupVolumeScale);
+        }
+
+        /// <summary>
+        /// Plays every clip in the array back-to-back on oneShotAudioSource
+        /// in the same frame -- PlayOneShot natively mixes overlapping calls
+        /// on one source, so this layers them with zero relative delay.
+        /// </summary>
+        private void PlayAllOneShot(AudioClip[] clips, float volumeScale = 1f)
+        {
+            if (clips == null || oneShotAudioSource == null)
+            {
+                return;
+            }
+            for (int i = 0; i < clips.Length; i++)
+            {
+                if (clips[i] != null)
+                {
+                    oneShotAudioSource.pitch = 1f;
+                    oneShotAudioSource.PlayOneShot(clips[i], volumeScale);
+                }
+            }
         }
 
 #if UNITY_EDITOR

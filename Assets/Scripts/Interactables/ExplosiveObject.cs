@@ -226,7 +226,10 @@ namespace HeroFangame.Interactables
             }
             if (shattered)
             {
-                freezeVisual?.PlayShatter();
+                // Explosive's own detonation audio already covers this
+                // moment, so suppress the normal Break Free sound to avoid
+                // doubling up — the freeze state still clears normally.
+                freezeVisual?.PlayShatter(playBreakFreeSound: false);
             }
             else
             {
