@@ -272,7 +272,8 @@
       "Bash(unity --format json command console --tail 300)",
       "Bash(unity --format json command recompile)",
       "Bash(unity --format json command recompile_status)",
-      "Bash(unity --format json command editor_stop)"
+      "Bash(unity --format json command editor_stop)",
+      "Bash(unity --format json command eval_file -- \"C:\\\\Users\\\\gohun\\\\OneDrive\\\\Desktop\\\\UnityProject\\\\Hero_Fangame\\\\eval_endingclips.cs\")"
     ]
   }
 }
