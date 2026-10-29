@@ -420,11 +420,11 @@ namespace HeroFangame.Interactables
 
         /// <summary>
         /// Shared explosion sound, played for every detonation regardless of
-        /// cause. Uses AudioSource.PlayClipAtPoint instead of a component on
-        /// this object because this GameObject self-destructs shortly after
-        /// (see DestroyAfterDelay/explosionVfxLifetime) -- PlayClipAtPoint
-        /// spawns its own disposable temp GameObject that outlives this one,
-        /// so a clip longer than explosionVfxLifetime still plays out fully.
+        /// cause. Uses PlayClip2D (below) instead of a component on this
+        /// object because this GameObject self-destructs shortly after (see
+        /// DestroyAfterDelay/explosionVfxLifetime) -- PlayClip2D spawns its
+        /// own disposable temp GameObject that outlives this one, so a clip
+        /// longer than explosionVfxLifetime still plays out fully.
         /// </summary>
         private void PlayExplosionSound()
         {
@@ -441,14 +441,40 @@ namespace HeroFangame.Interactables
                 var clip = heavyHitClips[index];
                 if (clip != null)
                 {
-                    AudioSource.PlayClipAtPoint(clip, transform.position);
+                    PlayClip2D(clip, transform.position);
                 }
             }
 
             if (explosionClip != null)
             {
-                AudioSource.PlayClipAtPoint(explosionClip, transform.position);
+                PlayClip2D(explosionClip, transform.position);
             }
+        }
+
+        /// <summary>
+        /// Non-positional equivalent of AudioSource.PlayClipAtPoint: every
+        /// other SFX in the game plays through a component-based AudioSource
+        /// (spatialBlend 0, set in the Inspector), which stays at full volume
+        /// regardless of distance from the camera. PlayClipAtPoint instead
+        /// defaults its temp AudioSource to spatialBlend 1 (full 3D) with
+        /// Unity's default logarithmic rolloff -- combined with this game's
+        /// camera sitting ~10 units back on Z for its 2D view, that alone
+        /// was enough distance to attenuate every explosion down to
+        /// near-silence (worse the farther a thrown explosive lands from
+        /// where it started). Spawning our own temp GameObject/AudioSource
+        /// with spatialBlend forced to 0 keeps the explosion as audible as
+        /// every other hit sound, while still outliving this object's own
+        /// self-destruct timer the same way PlayClipAtPoint would have.
+        /// </summary>
+        private static void PlayClip2D(AudioClip clip, Vector3 position)
+        {
+            var go = new GameObject("OneShotExplosionAudio");
+            go.transform.position = position;
+            var source = go.AddComponent<AudioSource>();
+            source.clip = clip;
+            source.spatialBlend = 0f;
+            source.Play();
+            Destroy(go, clip.length);
         }
 
         private IEnumerator HideSpriteAfterFlash()
