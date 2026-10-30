@@ -68,8 +68,8 @@ namespace HeroFangame.Player
         [SerializeField] private float pitchWobbleAmplitude = 0.1f;
         [Tooltip("Playback speed multiplier for the Introductory one-shot group -- doubled so the opening bass-drop/whoosh lands faster.")]
         [SerializeField] private float introEndingPlaybackSpeed = 2f;
-        [Tooltip("Playback speed multiplier for the Ending (release) one-shot group's 3 stages -- its natural ~4.1s total timeline (stage 1's length, plus half of stage 2's, plus stage 3's own length) divided by this gives its actual playtime; 2.74x compresses it to ~1.5s.")]
-        [SerializeField] private float endingPlaybackSpeed = 2.74f;
+        [Tooltip("Playback speed multiplier for the Ending (release) one-shot group's 3 stages -- its natural ~4.1s total timeline (stage 1's length, plus half of stage 2's, plus stage 3's own length) divided by this gives its actual playtime; 3.28x compresses it to ~1.25s.")]
+        [SerializeField] private float endingPlaybackSpeed = 3.28f;
         [Tooltip("Relative volume multiplier for Loop maneuver-group one-shots versus the Loop Main Group's own AudioSource volume (assumed 1.0) -- boosted so a maneuver burst cuts through the main loop's pitch-wobble instead of getting buried under it.")]
         [SerializeField] private float maneuverGroupVolumeScale = 1.5f;
         [Tooltip("Relative volume multiplier for Feedback (Enemies/Destructibles) group one-shots versus the Loop Main Group's own AudioSource volume (assumed 1.0). Left at 1.0 (original) -- an earlier 1.25x boost was tried and then reverted.")]
@@ -660,7 +660,7 @@ namespace HeroFangame.Player
         /// hit) right after stage 1 finishes, stage 3 (magic curse fire) at
         /// stage 2's midpoint, all at endingPlaybackSpeed -- its own fixed
         /// multiplier, independent of the Introductory sequence's speed, so
-        /// its natural ~4.1s total timeline compresses to ~1.5s instead.
+        /// its natural ~4.1s total timeline compresses to ~1.25s instead.
         /// Started immediately on release, independent of
         /// releaseFadeOutDuration -- the two just happen to run
         /// concurrently, not in lockstep.

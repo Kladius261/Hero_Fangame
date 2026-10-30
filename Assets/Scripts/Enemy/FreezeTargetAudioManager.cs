@@ -33,9 +33,15 @@ namespace HeroFangame.Enemy
         [SerializeField] private AudioSource maintainFrozenSource;
         [SerializeField] private AudioClip maintainFrozenClip;   // RPG3_IceMagic_DroneSubtle02_Loop
 
+        [Header("Volume Scales")]
+        [SerializeField] private float freezingVolumeScale = 1.75f;
+        [SerializeField] private float fullyFrozenVolumeScale = 1.75f;
+
         private int chillingTargetCount;
         private int frozenTargetCount;
         private int lastFullyFrozenFrame = -1;
+        private float freezingLayer1BaseVolume = 1f;
+        private float freezingLayer2BaseVolume = 1f;
 
         public static FreezeTargetAudioManager GetOrCreate()
         {
@@ -52,8 +58,16 @@ namespace HeroFangame.Enemy
         private void Awake()
         {
             Instance = this;
-            if (freezingLayer1Source != null) freezingLayer1Source.loop = false;
-            if (freezingLayer2Source != null) freezingLayer2Source.loop = false;
+            if (freezingLayer1Source != null)
+            {
+                freezingLayer1Source.loop = false;
+                freezingLayer1BaseVolume = freezingLayer1Source.volume;
+            }
+            if (freezingLayer2Source != null)
+            {
+                freezingLayer2Source.loop = false;
+                freezingLayer2BaseVolume = freezingLayer2Source.volume;
+            }
             if (maintainFrozenSource != null)
             {
                 maintainFrozenSource.loop = true;
@@ -66,8 +80,8 @@ namespace HeroFangame.Enemy
             chillingTargetCount++;
             if (chillingTargetCount == 1)
             {
-                if (freezingLayer1Source != null) { freezingLayer1Source.clip = freezingLayer1Clip; freezingLayer1Source.Play(); }
-                if (freezingLayer2Source != null) { freezingLayer2Source.clip = freezingLayer2Clip; freezingLayer2Source.Play(); }
+                if (freezingLayer1Source != null) { freezingLayer1Source.clip = freezingLayer1Clip; freezingLayer1Source.volume = freezingLayer1BaseVolume * freezingVolumeScale; freezingLayer1Source.Play(); }
+                if (freezingLayer2Source != null) { freezingLayer2Source.clip = freezingLayer2Clip; freezingLayer2Source.volume = freezingLayer2BaseVolume * freezingVolumeScale; freezingLayer2Source.Play(); }
             }
         }
 
@@ -86,7 +100,7 @@ namespace HeroFangame.Enemy
             if (Time.frameCount != lastFullyFrozenFrame)
             {
                 lastFullyFrozenFrame = Time.frameCount;
-                fullyFrozenOneShotSource?.PlayOneShot(fullyFrozenClip);
+                fullyFrozenOneShotSource?.PlayOneShot(fullyFrozenClip, fullyFrozenVolumeScale);
             }
 
             frozenTargetCount++;

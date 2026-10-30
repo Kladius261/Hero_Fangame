@@ -43,6 +43,7 @@ namespace HeroFangame.Enemy
         [FormerlySerializedAs("iceBreakSounds")]
         [SerializeField] private AudioClip[] breakFreeFirstLayerClips;
         [SerializeField] private AudioClip breakFreeSecondLayerClip;
+        [SerializeField] private float breakFreeVolumeScale = 1.25f;
 
         private Coroutine fadeRoutine;
         private WaitForSeconds shatterFlashWait;
@@ -209,13 +210,13 @@ namespace HeroFangame.Enemy
                 var clip = breakFreeFirstLayerClips[index];
                 if (clip != null)
                 {
-                    audioSource.PlayOneShot(clip);
+                    audioSource.PlayOneShot(clip, breakFreeVolumeScale);
                 }
             }
 
             if (breakFreeSecondLayerClip != null)
             {
-                audioSource.PlayOneShot(breakFreeSecondLayerClip);
+                audioSource.PlayOneShot(breakFreeSecondLayerClip, breakFreeVolumeScale);
             }
         }
 

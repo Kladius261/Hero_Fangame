@@ -5881,8 +5881,9 @@ MonoBehaviour:
   oneShotAudioSource: {fileID: 9122914557434697422}
   pitchWobbleSpeed: 6
   pitchWobbleAmplitude: 0.1
-  maneuverGroupVolumeScale: 1.5
+  maneuverGroupVolumeScale: 2.25
   releaseFadeOutDuration: 0.5
+  introVolumeScale: 1.25
   introClipA: {fileID: 8300000, guid: 7c4d46c2e8821144bbf5cbc3af79ad19, type: 3}
   introClipB: {fileID: 8300000, guid: fb5aa8696f7113a438dc9609c254b7e1, type: 3}
   maneuverGroup1Clips:

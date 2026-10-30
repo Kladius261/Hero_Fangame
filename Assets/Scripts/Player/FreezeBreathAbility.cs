@@ -56,9 +56,11 @@ namespace HeroFangame.Player
         [SerializeField] private float pitchWobbleSpeed = 6f;
         [SerializeField] private float pitchWobbleAmplitude = 0.1f;
         [Tooltip("Relative volume multiplier for Loop maneuver-group one-shots versus the Loop Main Group's own AudioSource volume (assumed 1.0) -- boosted so a maneuver burst cuts through the main loop's pitch-wobble instead of getting buried under it.")]
-        [SerializeField] private float maneuverGroupVolumeScale = 1.5f;
+        [SerializeField] private float maneuverGroupVolumeScale = 2.25f;
         [Tooltip("Duration of the smooth volume fade-out applied to the Loop Main Group (both layers) when the breath is released -- replaces an instant cutoff with a quick decline.")]
         [SerializeField] private float releaseFadeOutDuration = 0.5f;
+        [Tooltip("Relative volume multiplier for the Introductory one-shots (introClipA/introClipB).")]
+        [SerializeField] private float introVolumeScale = 1.25f;
 
         [Header("Audio - Introductory (on press)")]
         [SerializeField] private AudioClip introClipA;
@@ -425,12 +427,12 @@ namespace HeroFangame.Player
         {
             if (introClipA != null)
             {
-                oneShotAudioSource?.PlayOneShot(introClipA);
+                oneShotAudioSource?.PlayOneShot(introClipA, introVolumeScale);
                 yield return new WaitForSeconds(introClipA.length * 0.5f);
             }
             if (introClipB != null)
             {
-                oneShotAudioSource?.PlayOneShot(introClipB);
+                oneShotAudioSource?.PlayOneShot(introClipB, introVolumeScale);
             }
             introCoroutine = null;
         }
