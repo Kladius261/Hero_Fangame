@@ -74,6 +74,7 @@ namespace HeroFangame.Interactables
         private SpriteRenderer spriteRenderer;
         private Collider2D col;
         private HitSquashEffect squashEffect;
+        private ThrowImpactSound throwImpactSound;
         private Transform player;
 
         private FreezeState state = FreezeState.Normal;
@@ -92,6 +93,7 @@ namespace HeroFangame.Interactables
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             col = GetComponent<Collider2D>();
             squashEffect = GetComponent<HitSquashEffect>();
+            throwImpactSound = GetComponent<ThrowImpactSound>();
 
             if (spriteRenderer != null)
             {
@@ -348,6 +350,7 @@ namespace HeroFangame.Interactables
             {
                 DustParticle.SpawnCluster(dustParticlePrefab, transform.position + Vector3.up * dustSpawnHeightOffset);
                 TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.Throw, transform.position);
+                throwImpactSound?.PlayThrow();
             }
 
             damageable.TakeDamage(throwSelfDamage, new DamageInfo(thrower, Vector2.zero, 0f));

@@ -106,6 +106,7 @@ namespace HeroFangame.Enemy
         private SpriteRenderer spriteRenderer;
         private Damageable damageable;
         private HitSquashEffect squashEffect;
+        private ThrowImpactSound throwImpactSound;
         private Collider2D col;
 
         private State state = State.Wander;
@@ -135,6 +136,7 @@ namespace HeroFangame.Enemy
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             damageable = GetComponent<Damageable>();
             squashEffect = GetComponent<HitSquashEffect>();
+            throwImpactSound = GetComponent<ThrowImpactSound>();
             col = GetComponent<Collider2D>();
 
             if (spriteRenderer != null)
@@ -544,6 +546,7 @@ namespace HeroFangame.Enemy
             {
                 DustParticle.SpawnCluster(dustParticlePrefab, transform.position + Vector3.up * dustSpawnHeightOffset);
                 TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.Throw, transform.position);
+                throwImpactSound?.PlayThrow();
             }
 
             damageable.TakeDamage(throwSelfDamage, new DamageInfo(thrower, Vector2.zero, 0f));

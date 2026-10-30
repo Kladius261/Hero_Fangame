@@ -16,6 +16,7 @@ namespace HeroFangame.Player
     [RequireComponent(typeof(PlayerController))]
     [RequireComponent(typeof(PunchHitEffect))]
     [RequireComponent(typeof(PunchHitSound))]
+    [RequireComponent(typeof(PunchSwingSound))]
     public class PlayerCombat : MonoBehaviour
     {
         [Header("Combo")]
@@ -41,6 +42,7 @@ namespace HeroFangame.Player
         private PlayerController controller;
         private PunchHitEffect hitEffect;
         private PunchHitSound hitSound;
+        private PunchSwingSound swingSound;
 
         private int comboStep;
         private float comboTimer;
@@ -51,6 +53,7 @@ namespace HeroFangame.Player
             controller = GetComponent<PlayerController>();
             hitEffect = GetComponent<PunchHitEffect>();
             hitSound = GetComponent<PunchHitSound>();
+            swingSound = GetComponent<PunchSwingSound>();
         }
 
         private void OnEnable()
@@ -81,6 +84,12 @@ namespace HeroFangame.Player
             {
                 return;
             }
+
+            // Plays on every real attack attempt regardless of whether it
+            // connects -- called before hit detection below so it sounds
+            // slightly before the regular-hit layer on frames where the
+            // punch actually lands.
+            swingSound.PlaySwing();
 
             int damage = comboDamage[Mathf.Clamp(comboStep, 0, comboDamage.Length - 1)];
 
@@ -117,9 +126,12 @@ namespace HeroFangame.Player
                 {
                     landedHit = true;
                     hitEffect.PlayRandomAt(hit.bounds.center);
-                    hitSound.PlayRandom();
                     if (!wasFrozen[i] && !isExplosive[i])
                     {
+                        // Regular-hit audio/popup only for non-explosive,
+                        // non-frozen targets -- those play their own
+                        // explosion/break-free sound instead.
+                        hitSound.PlayRandom();
                         TextPopupManager.Instance?.SpawnBurst(TextPopupManager.Category.RegularHit, hit.bounds.center);
                     }
                     hit.GetComponentInParent<HitSquashEffect>()?.PlaySquash(controller.Facing);

@@ -14,6 +14,7 @@ namespace HeroFangame.Player
     /// </summary>
     [RequireComponent(typeof(PlayerInputHandler))]
     [RequireComponent(typeof(PlayerController))]
+    [RequireComponent(typeof(PlayerGrabThrowSound))]
     public class PlayerGrabAbility : MonoBehaviour
     {
         [Header("Grab")]
@@ -22,6 +23,7 @@ namespace HeroFangame.Player
 
         private PlayerInputHandler input;
         private PlayerController controller;
+        private PlayerGrabThrowSound grabSound;
 
         private static readonly Collider2D[] overlapBuffer = new Collider2D[16];
 
@@ -33,6 +35,7 @@ namespace HeroFangame.Player
         {
             input = GetComponent<PlayerInputHandler>();
             controller = GetComponent<PlayerController>();
+            grabSound = GetComponent<PlayerGrabThrowSound>();
         }
 
         private void OnEnable()
@@ -113,6 +116,7 @@ namespace HeroFangame.Player
             grabbedTarget = target;
             controller.SetGrabStance(true);
             target.BeginGrab(transform);
+            grabSound.PlayGrab();
         }
 
         private void Throw(Vector2 direction)

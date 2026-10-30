@@ -3,18 +3,24 @@ using UnityEngine;
 namespace HeroFangame.Player
 {
     /// <summary>
-    /// Plays a random regular-hit impact sound from a pool each time a
-    /// punch connects. Mirrors PunchHitEffect's "pool + random pick"
-    /// convention, but for audio. Avoids repeating the same clip twice in
-    /// a row so a rapid combo doesn't sound like it's looping one sample.
+    /// Plays a layered regular-hit impact sound each time a punch connects:
+    /// one clip is independently picked (no immediate repeat) from each of
+    /// three pools and all three are played together via PlayOneShot, which
+    /// natively mixes overlapping calls on a single AudioSource. Mirrors the
+    /// same per-layer random-no-repeat convention as
+    /// ExplosiveObject.PlayExplosionSound/EnemyFreezeVisualEffect.PlayBreakFreeSound.
     /// </summary>
     [RequireComponent(typeof(AudioSource))]
     public class PunchHitSound : MonoBehaviour
     {
-        [SerializeField] private AudioClip[] hitClips;
+        [SerializeField] private AudioClip[] layer1Clips;
+        [SerializeField] private AudioClip[] layer2Clips;
+        [SerializeField] private AudioClip[] layer3Clips;
 
         private AudioSource audioSource;
-        private int lastClipIndex = -1;
+        private int lastLayer1Index = -1;
+        private int lastLayer2Index = -1;
+        private int lastLayer3Index = -1;
 
         private void Awake()
         {
@@ -23,7 +29,14 @@ namespace HeroFangame.Player
 
         public void PlayRandom()
         {
-            if (hitClips == null || hitClips.Length == 0)
+            PlayLayer(layer1Clips, ref lastLayer1Index);
+            PlayLayer(layer2Clips, ref lastLayer2Index);
+            PlayLayer(layer3Clips, ref lastLayer3Index);
+        }
+
+        private void PlayLayer(AudioClip[] clips, ref int lastIndex)
+        {
+            if (clips == null || clips.Length == 0)
             {
                 return;
             }
@@ -31,12 +44,12 @@ namespace HeroFangame.Player
             int index;
             do
             {
-                index = Random.Range(0, hitClips.Length);
+                index = Random.Range(0, clips.Length);
             }
-            while (hitClips.Length > 1 && index == lastClipIndex);
-            lastClipIndex = index;
+            while (clips.Length > 1 && index == lastIndex);
+            lastIndex = index;
 
-            var clip = hitClips[index];
+            var clip = clips[index];
             if (clip != null)
             {
                 audioSource.PlayOneShot(clip);
