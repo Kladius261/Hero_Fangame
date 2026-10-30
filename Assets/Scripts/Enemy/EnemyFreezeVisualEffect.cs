@@ -39,7 +39,6 @@ namespace HeroFangame.Enemy
         [SerializeField] private float shatterFlashDuration = 0.06f;
 
         [Header("Audio")]
-        [SerializeField] private AudioSource audioSource;
         [FormerlySerializedAs("iceBreakSounds")]
         [SerializeField] private AudioClip[] breakFreeFirstLayerClips;
         [SerializeField] private AudioClip breakFreeSecondLayerClip;
@@ -189,14 +188,18 @@ namespace HeroFangame.Enemy
         /// repeat of the last one played (mirrors PunchHitSound's
         /// no-immediate-repeat convention), always layered with a fixed
         /// second-layer clip played alongside it.
+        ///
+        /// PlayShatter() is reached from EnemyRobot.Land()/DestructibleObject.Land()
+        /// right before those apply lethal throw self-damage, which can
+        /// destroy this GameObject (after a short death-shrink animation)
+        /// before a PlayOneShot on its own AudioSource would finish --
+        /// audibly cutting the sound off. So, exactly like
+        /// ExplosiveObject.PlayExplosionSound/ThrowImpactSound, each layer
+        /// is played through its own disposable temp GameObject/AudioSource
+        /// that outlives this one.
         /// </summary>
         private void PlayBreakFreeSound()
         {
-            if (audioSource == null)
-            {
-                return;
-            }
-
             if (breakFreeFirstLayerClips != null && breakFreeFirstLayerClips.Length > 0)
             {
                 int index;
@@ -210,14 +213,35 @@ namespace HeroFangame.Enemy
                 var clip = breakFreeFirstLayerClips[index];
                 if (clip != null)
                 {
-                    audioSource.PlayOneShot(clip, breakFreeVolumeScale);
+                    PlayClip2D(clip, transform.position, breakFreeVolumeScale);
                 }
             }
 
             if (breakFreeSecondLayerClip != null)
             {
-                audioSource.PlayOneShot(breakFreeSecondLayerClip, breakFreeVolumeScale);
+                PlayClip2D(breakFreeSecondLayerClip, transform.position, breakFreeVolumeScale);
             }
+        }
+
+        /// <summary>
+        /// Non-positional equivalent of AudioSource.PlayClipAtPoint -- see
+        /// ExplosiveObject.PlayClip2D for the full rationale (PlayClipAtPoint
+        /// defaults to full 3D spatialBlend, which this 2D game's camera
+        /// distance attenuates to near-silence). Spawning a dedicated temp
+        /// GameObject/AudioSource per clip also means this sound keeps
+        /// playing even after the object that triggered it is destroyed.
+        /// </summary>
+        private static void PlayClip2D(AudioClip clip, Vector3 position, float volume)
+        {
+            var go = new GameObject("OneShotBreakFreeAudio");
+            go.transform.position = position;
+            var source = go.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.clip = clip;
+            source.spatialBlend = 0f;
+            source.volume = volume;
+            source.Play();
+            Destroy(go, clip.length);
         }
 
         /// <summary>

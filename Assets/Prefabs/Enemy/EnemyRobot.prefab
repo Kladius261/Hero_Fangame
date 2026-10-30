@@ -7183,6 +7183,7 @@ GameObject:
   - component: {fileID: 2161864642756963197}
   - component: {fileID: 6939893500856688901}
   - component: {fileID: 217550312636617602}
+  - component: {fileID: 5146814442857953281}
   m_Layer: 9
   m_Name: EnemyRobot
   m_TagString: Enemy
@@ -7431,11 +7432,11 @@ MonoBehaviour:
   iceFadeOutDuration: 0.4
   iceShatterFadeOutDuration: 0.1
   shatterFlashDuration: 0.06
-  audioSource: {fileID: 217550312636617602}
   breakFreeFirstLayerClips:
   - {fileID: 8300000, guid: 09383dc475e8d93409b2c8cd06a033bb, type: 3}
   - {fileID: 8300000, guid: 917637ebe08acc345bb8f30743a45f7f, type: 3}
   breakFreeSecondLayerClip: {fileID: 8300000, guid: d26529a96c547c4458f4d6ad52264269, type: 3}
+  breakFreeVolumeScale: 1.25
 --- !u!114 &6939893500856688901
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7548,3 +7549,24 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &5146814442857953281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3598031541770938261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e038b7ad8a516849985e3090686864b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Core.ThrowImpactSound
+  layer1Clips:
+  - {fileID: 8300000, guid: 3ab375a374ec99247a1e7540b18ecb73, type: 3}
+  - {fileID: 8300000, guid: 813efb30569904241995e314c7a927b6, type: 3}
+  - {fileID: 8300000, guid: 20837789c88085a44894a34e47c1e344, type: 3}
+  - {fileID: 8300000, guid: 6e8872fda43c9a84ca50d66c782500b2, type: 3}
+  layer2Clips:
+  - {fileID: 8300000, guid: 887a66722c6701243b42ca639ca89c0e, type: 3}
+  - {fileID: 8300000, guid: d8cbec69b64c4db42a299f204a4cbfd7, type: 3}
+  - {fileID: 8300000, guid: 7b13c7aa94ac39d4d847ba9851c198b1, type: 3}

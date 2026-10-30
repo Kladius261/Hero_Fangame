@@ -474,6 +474,7 @@ namespace HeroFangame.Interactables
             var go = new GameObject("OneShotExplosionAudio");
             go.transform.position = position;
             var source = go.AddComponent<AudioSource>();
+            source.playOnAwake = false;
             source.clip = clip;
             source.spatialBlend = 0f;
             source.Play();

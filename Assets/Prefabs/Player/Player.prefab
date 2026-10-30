@@ -5557,6 +5557,8 @@ GameObject:
   - component: {fileID: 9122914557434697422}
   - component: {fileID: 5857523849929793212}
   - component: {fileID: 4766767587930731141}
+  - component: {fileID: 4013372152615933357}
+  - component: {fileID: 2859552336704820095}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -6034,25 +6036,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1437317ca95af6a4b88fc1f7c55ff74c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Player.PunchHitSound
-  hitClips:
-  - {fileID: 8300000, guid: cf3da5cb0e3342045be4f2cab79d85d7, type: 3}
-  - {fileID: 8300000, guid: f0c6791f9cc56ce4689113909a922235, type: 3}
-  - {fileID: 8300000, guid: c1f42d4f15836ef40bc8114e5ae236d4, type: 3}
-  - {fileID: 8300000, guid: 5425ea49ec41b6442bd4c71885ce8d63, type: 3}
-  - {fileID: 8300000, guid: eb8f9af9fe8d2c5409796d904f4b4f82, type: 3}
-  - {fileID: 8300000, guid: 6785a7a6df35e044093573936e71710b, type: 3}
-  - {fileID: 8300000, guid: 4f83a8ab8bb680349819144ce5158b0b, type: 3}
-  - {fileID: 8300000, guid: 6e5c0cecbbdd646469b87adf60ad4329, type: 3}
-  - {fileID: 8300000, guid: 1d13c04f85d8e5042b7abdd1d0a56f4c, type: 3}
-  - {fileID: 8300000, guid: 407d22eff46c43f48974e1f3ccd715a6, type: 3}
-  - {fileID: 8300000, guid: 504d3c2d2c272e14386c05e24471cee0, type: 3}
-  - {fileID: 8300000, guid: 3c61d5821c6cd934f96a44b8c83b9e94, type: 3}
-  - {fileID: 8300000, guid: a7c51a0416ef1734d849725efe266a16, type: 3}
-  - {fileID: 8300000, guid: 26be7b9cc4987714a927e28057cd4c0e, type: 3}
-  - {fileID: 8300000, guid: 71e356d1b1a28de4ab75e971a7bf207b, type: 3}
-  - {fileID: 8300000, guid: d85df5dc9e93c9a499bd1eb713b3c6aa, type: 3}
-  - {fileID: 8300000, guid: f6422e3ae17a96041b7a5212f22e1a92, type: 3}
-  - {fileID: 8300000, guid: 833fed094b2dae740ade524502f27abf, type: 3}
+  layer1Clips:
+  - {fileID: 8300000, guid: 1be73d06205ebbb42b29d3cf5a728fde, type: 3}
+  - {fileID: 8300000, guid: e50e7fc4fce5df64eb88c702427b7f2f, type: 3}
+  - {fileID: 8300000, guid: a2bfd8500257bdf4092a9a222d7b8492, type: 3}
+  - {fileID: 8300000, guid: 86f255ef079344b49bd0915763ccc629, type: 3}
+  layer2Clips:
+  - {fileID: 8300000, guid: d9a25bf2e56fa93418671dc3f8fdc659, type: 3}
+  - {fileID: 8300000, guid: 29556b26758dcb643acf558aaa505c41, type: 3}
+  layer3Clips:
+  - {fileID: 8300000, guid: 573432b1081fc2941844be45f7606394, type: 3}
+  - {fileID: 8300000, guid: e0640d619319ba142949bfb96d51bc44, type: 3}
+  - {fileID: 8300000, guid: 05db27aab13396e46bf050ee992675f2, type: 3}
+  - {fileID: 8300000, guid: 1a5083fcdc28bf24a81f154b551556e9, type: 3}
 --- !u!82 &3364541944535352698
 AudioSource:
   m_ObjectHideFlags: 0
@@ -6778,6 +6774,36 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &4013372152615933357
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5530497137793543233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1aacf7e96caa78e40be6bca825aac589, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Player.PunchSwingSound
+  firstLayerClips:
+  - {fileID: 8300000, guid: 7ed392ff6d852f247bd83219c0cd1463, type: 3}
+  - {fileID: 8300000, guid: a4bc72e959e2c68419df9b03ecef0596, type: 3}
+  - {fileID: 8300000, guid: 3094b3105ba3181479ef7cd618a38c68, type: 3}
+  secondLayerClip: {fileID: 8300000, guid: a12a52dbdc10e68409dd739d79202091, type: 3}
+--- !u!114 &2859552336704820095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5530497137793543233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b940d8887ac69bd48b1a222923352af6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HeroFangame.Player.PlayerGrabThrowSound
+  grabClip: {fileID: 8300000, guid: c902b4a10c4257245bd58e85e85e1fea, type: 3}
 --- !u!1 &5870068130252437669
 GameObject:
   m_ObjectHideFlags: 0
